@@ -1,3 +1,6 @@
-foo,bar,baz,date,mung,season
-test1,test2,test3,26/11/1962,test4,Autumn
-test5,test6,test7,18/04/1959,test8,Spring
+foo,count,baz,date,mung
+test1,1,test3,26/11/1962,test4
+test5,4+,test7,18/04/1959,test8
+test9,c5,test10,18/02/1990,test11
+test12,present,test13,12/02/1993,test14
+test15,Present,test16,01/01/2023,test17
