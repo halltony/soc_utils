@@ -1,5 +1,6 @@
 name: soc_utils
 dependencies:
  - python=3.8
- - pyephem
+ - datetime
  - pandas
+ - numpy

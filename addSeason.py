@@ -29,5 +29,5 @@ args = parser.parse_args()
 config = vars(args)
 
 df = pd.read_csv(args.file_path)
-df['season'] = df[args.date_column].map(get_season)
+df['Season'] = df[args.date_column].map(get_season)
 df.to_csv(args.file_path, index=False)
