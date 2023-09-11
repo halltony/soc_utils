@@ -1,0 +1,5 @@
+name: soc_utils
+dependencies:
+ - python=3.8
+ - pyephem
+ - pandas
