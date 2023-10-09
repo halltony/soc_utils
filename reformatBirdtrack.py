@@ -10,7 +10,7 @@ import shutil
 def get_season(dateTime):
   m = dateTime.month
   d = dateTime.day
-  if (m < 5 and d < 16):
+  if (m < 4 or (m == 4 and d < 16)):
     season = 'Winter/Spring'
   elif m < 8:
     season = 'Summer'
