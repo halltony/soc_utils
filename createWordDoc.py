@@ -1,11 +1,7 @@
 #!/Users/Tony/.pyenv/shims/python
 
 # TODO
-# Use Excel as Input
-# Loop through all species
-# Add Scientific Name to Species Section
 # Add BOU Category, BTO short code and Conservation Status to species header
-# Break observations into 3 seasonal sections
 # ?Reformat as paragraph rather than table - without comments
 # ?Sumarise low counts at end of seasonal section
 
