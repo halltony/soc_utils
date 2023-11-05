@@ -1,14 +1,16 @@
 #!/Users/Tony/.pyenv/shims/python
 
-# TODO
-
 from docx import Document
 from docx.shared import Inches
 from docx.shared import RGBColor
+from docx.shared import Pt
+from docx.enum.style import WD_STYLE_TYPE
+from docx.enum.dml import MSO_THEME_COLOR
 
 import argparse
 import pandas as pd
 import numpy as np
+import re
 
 parser = argparse.ArgumentParser(description="Create Bird Report species headings from a reformated Birdtrack export",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -21,7 +23,37 @@ config = vars(args)
 
 document = Document()
 
-df = pd.read_excel(args.file_path).fillna(value = 0)
+obj_styles = document.styles
+
+obj_charstyle = obj_styles.add_style('SpeciesStyle', WD_STYLE_TYPE.CHARACTER)
+obj_font = obj_charstyle.font
+obj_font.size = Pt(18)
+obj_font.name = 'Ariel'
+obj_font.bold = True
+
+obj_charstyle = obj_styles.add_style('ScientificStyle', WD_STYLE_TYPE.CHARACTER)
+obj_font = obj_charstyle.font
+obj_font.size = Pt(14)
+obj_font.name = 'Ariel'
+obj_font.italic = True
+
+obj_charstyle = obj_styles.add_style('BouStyle', WD_STYLE_TYPE.CHARACTER)
+obj_font = obj_charstyle.font
+obj_font.size = Pt(12)
+obj_font.name = 'Ariel'
+obj_font.bold = True
+
+obj_charstyle = obj_styles.add_style('BtoStyle', WD_STYLE_TYPE.CHARACTER)
+obj_font = obj_charstyle.font
+obj_font.size = Pt(12)
+obj_font.name = 'Ariel'
+obj_font.bold = True
+
+df = pd.read_excel(args.file_path, sheet_name='Records#1').fillna(value = 0)
+
+# sort the input file by BOU order
+df.sort_values(by=['BOU order', 'Species'], inplace=True)
+
 reference_df = pd.read_csv(args.data_file_path)
 
 #get the list of species in the report
@@ -37,21 +69,36 @@ for species in speciesList:
         bto_code = row.iloc[0]['BTO_Code']
         cons_stat = row.iloc[0]['Scotland']
         p = document.add_paragraph('')
-        p.add_run(species).bold = True
+        wp = p.add_run(species, style='SpeciesStyle').font.color.theme_color = MSO_THEME_COLOR.ACCENT_1
         p.add_run(' ')
-        p.add_run(scientificName).italic = True
+        p.add_run(scientificName, style='ScientificStyle').font.color.theme_color = MSO_THEME_COLOR.ACCENT_1
         p.add_run('\t\t')
-        p.add_run(bou_cat)
-        p.add_run('/')
-        p.add_run(bto_code)
-        p.add_run('/')
-        if 'Green' in cons_stat:
-            p.add_run(cons_stat).font.color.rgb = RGBColor(0, 128, 0)
-        elif 'Amber' in cons_stat:
-            p.add_run(cons_stat).font.color.rgb = RGBColor(255, 165, 0)
-        elif 'Red' in cons_stat:
-            p.add_run(cons_stat).font.color.rgb = RGBColor(255, 0, 0)
+        if bou_cat:
+            reformatted_bou = ''
+            for letter in bou_cat:
+                if re.match(r'A', letter):
+                    reformatted_bou = 'A'
+                elif re.match(r'[BCDE]', letter):
+                    reformatted_bou += ', '
+                    reformatted_bou += letter
+                elif re.match(r'[\d\*]', letter):
+                    reformatted_bou += letter
+            p.add_run(reformatted_bou, style='BouStyle').font.color.theme_color = MSO_THEME_COLOR.ACCENT_1
         else:
-            p.add_run(cons_stat)
+            p.add_run('na', style='BouStyle').font.color.theme_color = MSO_THEME_COLOR.ACCENT_1
+        p.add_run(' / ', style='BtoStyle')
+        if re.match(r"^[A-Z][A-Z\.]$", bto_code):
+            p.add_run(bto_code, style='BtoStyle')
+        else:
+            p.add_run('na', style='BtoStyle')
+        p.add_run(' / ', style='BtoStyle')
+        if 'Green' in cons_stat:
+            p.add_run('Green', style='BtoStyle').font.color.rgb = RGBColor(0, 176, 80)
+        elif 'Amber' in cons_stat:
+            p.add_run('Amber', style='BtoStyle').font.color.rgb = RGBColor(255, 192, 0)
+        elif 'Red' in cons_stat:
+            p.add_run('Red', style='BtoStyle').font.color.rgb = RGBColor(255, 0, 0)
+        else:
+            p.add_run('na', style='BtoStyle').font.color.theme_color = MSO_THEME_COLOR.ACCENT_1
 
-document.save('demo.docx')
+document.save('Generated Species Headings.docx')

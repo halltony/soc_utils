@@ -47,8 +47,9 @@ df = pd.read_excel(args.file_path).fillna(value = 0)
 speciesList = df.Species.unique()
 
 for species in speciesList:
+    print(species)
     species_df = df[df['Species'] == species]
-    if len(species_df) < 50 and not species.startswith('Unidentified'):
+    if not species.startswith('Unidentified'):
         scientificName = species_df['Scientific name'].unique()
         p = document.add_paragraph('')
         p.add_run(species).bold = True
