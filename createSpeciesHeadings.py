@@ -75,14 +75,16 @@ for species in speciesList:
         p.add_run('\t\t')
         if bou_cat:
             reformatted_bou = ''
+            first_letter = True
             for letter in bou_cat:
-                if re.match(r'A', letter):
-                    reformatted_bou = 'A'
-                elif re.match(r'[BCDE]', letter):
-                    reformatted_bou += ', '
-                    reformatted_bou += letter
-                elif re.match(r'[\d\*]', letter):
-                    reformatted_bou += letter
+                if first_letter:
+                    reformatted_bou = letter
+                    first_letter = False
+                else:
+                    if re.match(r'[BCDE]', letter):
+                        reformatted_bou += ', '
+                    if letter != 'F':
+                        reformatted_bou += letter
             p.add_run(reformatted_bou, style='BouStyle').font.color.theme_color = MSO_THEME_COLOR.ACCENT_1
         else:
             p.add_run('na', style='BouStyle').font.color.theme_color = MSO_THEME_COLOR.ACCENT_1
