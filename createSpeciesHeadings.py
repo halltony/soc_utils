@@ -60,8 +60,13 @@ reference_df = pd.read_csv(args.data_file_path)
 speciesList = df.Species.unique()
 
 for species in speciesList:
-    print(species)
-    species_df = df[df['Species'] == species]
+    if not species.startswith('Unidentified'):
+        print(species)
+        species_df = df[df['Species'] == species]
+        createSpeciesHeader(species_df)
+        createObsTable(species_df)
+
+//To here
     scientificName = species_df['Scientific name'].unique()
     row = reference_df.query("Scientific_name == @scientificName[0]")
     if  len(row) > 0:
@@ -102,5 +107,6 @@ for species in speciesList:
             p.add_run('Red', style='BtoStyle').font.color.rgb = RGBColor(255, 0, 0)
         else:
             p.add_run('na', style='BtoStyle').font.color.theme_color = MSO_THEME_COLOR.ACCENT_1
-
-document.save('Generated Species Headings.docx')
+        reformatedSpecies = species.replace(' ', '_')
+        reformatedSpecies = reformatedSpecies.replace('/','')
+        document.save('output/' + '{}.docx'.format(reformatedSpecies))
