@@ -34,14 +34,14 @@ shutil.copyfile(args.file_path, backup)
 df = pd.read_excel(args.file_path, converters= {'Date': pd.to_datetime})
 
 # Remove columns that are not required
-columnsToRemove = ['BTO species code', 'BOU order', 'Grid reference', 'Uncertainty radius',
+columnsToRemove = ['BTO species code', 'Grid reference', 'Uncertainty radius',
                    'Geometry type', 'Lat', 'Long', 'Pinpoint', 'Observer name', 'User ID', 'User name', 
                    'Start time', 'End time']
 
 df = df.drop(columnsToRemove, axis=1)
 
 # Reorder the remaining columns
-requiredColumnOrder = ['Species', 'Scientific name', 'Count', 'Place', 'Date', 'Comment']
+requiredColumnOrder = ['BOU order', 'Species', 'Scientific name', 'Count', 'Place', 'Date', 'Comment']
 df = df.reindex(columns=requiredColumnOrder)
 
 # Insert a season column
