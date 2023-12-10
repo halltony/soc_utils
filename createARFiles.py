@@ -142,5 +142,5 @@ for species in speciesList:
         bouOrder = species_df['BOU order'].unique()
         reformatedSpecies = species.replace(' ', '_')
         reformatedSpecies = reformatedSpecies.replace('/','')
-        reformatedSpecies = bouOrder[0] + reformatedSpecies
+        reformatedSpecies = str(bouOrder[0]) + '-' + reformatedSpecies
         document.save('output/' + '{}.docx'.format(reformatedSpecies))

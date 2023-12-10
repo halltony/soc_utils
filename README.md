@@ -11,12 +11,12 @@ Utility scripts for manipulating bird observation data
 
 5.  analysis.py - can be used to provide some summary information on a Birtdtrack export in excel format.  It provides the total number of species, the total number of records for all species and then the number of records for each species present.
 
-6.  createSpeciesHeadings.py - original standalone logic to create a single word document containing all of the species headings.  This has been merged with createWordDoc.py to create createARFiles.py
+6. createWordDoc.py - original standalone logic to create individual seasonal observation tables for each species.  This has been merged with createSpeciesHeadings.py to create createARFiles.py
 
-7. createWordDoc.py - original standalone logic to create individual seasonal observation tables for each species.  This has been merged with createSpeciesHeadings.py to create createARFiles.py
+7.  dropColumn.py -  a standalone utility that can be used to remove unrequired columns from arbitrary csv filers
 
-8.  dropColumn.py -  a standalone utility that can be used to remove unrequired columns from arbitrary csv filers
+8. fixCount.py - a standalone utility that can be used to ensure that the count field in an observation spreadsheet contains a numerical value.  i.e. convert N+, Present cN to a numeric.
 
-9. fixCount.py - a standalone utility that can be used to ensure that the count field in an observation spreadsheet contains a numerical value.  i.e. convert N+, Present cN to a numeric.
+9.  reformatRSPB.py - a standalone script to reformat observation data provided by the RSPB for the Clyde region into a format that can be imported to Birdtrack retaining as much useful data as is possible.
 
-10.  reformatRSPB.py - a standalone script to reformat observation data provided by the RSPB for the Clyde region into a format that can be imported to Birdtrack retaining as much useful data as is possible.
+10.  mergeFiles.py - a script that takes the output from createARFiles.py and identifies matches between the word documents and the folder structure provided by the BTO.  The script takes as input two paths - the first is the location of the BTO output species folder amd the second is the location of the output from the createARFiles script.  Currently it simply outputs any files that cannot be matched to a folder in the BTO annual report pack.  NB it assumes uncommon subspecies i.e. species containing a genus in brackets should be associated with the more common sub species folder in the BTO annual report pack
