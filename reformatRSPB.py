@@ -64,11 +64,11 @@ residents = ['Black Grouse', 'Black-headed Gull', 'Blackbird', 'Blue Tit', 'Bull
              'Goldfinch', 'Goosander', 'Great Crested Grebe', 'Great Spotted Woodpecker', 'Great Tit', 'Greenfinch', 'Greylag Goose',
              'House Sparrow', 'Jackdaw', 'Jay', 'Kestrel', 'Kingfisher', 'Lapwing', 'Lesser Redpoll', 'Little Grebe', 'Long-tailed Tit',
              'Magpie', 'Mallard', 'Meadow Pipit', 'Mistle Thrush', 'Moorhen', 'Mute Swan', 'Nuthatch', 'Oystercatcher', 'Peregrine',
-             'Pheasant', 'Pied Wagtail', 'Raven', 'Redshank', 'Reed Bunting', 'Robin', 'Sedge Warbler', 'Shoveler', 'Siskin',
+             'Pheasant', 'Pied Wagtail', 'Raven', 'Redshank', 'Reed Bunting', 'Robin', 'Shoveler', 'Siskin',
              'Skylark', 'Snipe', 'Song Thrush', 'Sparrowhawk', 'Starling', 'Stonechat', 'Tawny Owl', 'Teal', 'Treecreeper',
              'Tufted Duck', 'Water Rail', 'Wigeon', 'Woodcock', 'Woodpigeon', 'Wren']
 migrants = ['Blackcap', 'Chiffchaff', 'Common Sandpiper', 'Cuckoo', 'Garden Warbler', 'Grasshopper Warbler', 'Little Ringed Plover',
-            'Pied Flycatcher', 'Redstart', 'Sand Martin', 'Spotted Crake', 'Spotted Flycatcher', 'Swallow', 'Tree Pipit', 'Whitethroat',
+            'Pied Flycatcher', 'Redstart', 'Sand Martin', 'Sedge Warbler', 'Spotted Crake', 'Spotted Flycatcher', 'Swallow', 'Tree Pipit', 'Whitethroat',
              'Willow Warbler', 'Wood Warbler']
 
 for index, row in input_df.iterrows():
@@ -110,17 +110,19 @@ for index, row in input_df.iterrows():
     if 'ARM Species Records' in row['Dataset']:
         if row['Primary Count Unit'] == 'Pair':
             comment = row['Primary Count'] + ' ' + row['Primary Count Unit'] + 's; '
+        else:
+            if pd.notna(row['Status']) and row['Status'] != 'Unknown':
+                comment += '{}; '.format(row['Status'])
     else:
         if pd.notna(row['Primary Count Comment']):
             comment += '{}; '.format(row['Primary Count Comment'])
+        if pd.notna(row['Status']) and row['Status'] != 'Unknown':
+            comment += '{}; '.format(row['Status'])
     if pd.notna(row['Comments']):
         comment = '{}; '.format(row['Comments'])
     if pd.notna(row['Activity']) and \
        row['Activity'] != 'Not recorded':
         comment += '{}; '.format(row['Activity'])
-    if pd.notna(row['Status']) and \
-       row['Status'] != 'Unknown':
-        comment += '{}; '.format(row['Status'])
     if pd.notna(row['Chicks Min']):
         comment += 'Chicks Min: {}; '.format(row['Chicks Min'])
     if pd.notna(row['Chicks Max']):
