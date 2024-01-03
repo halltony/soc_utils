@@ -192,3 +192,6 @@ output.zip
 species/*
 ARM_RSPBImport.xlsx
 Non_ARM_RSPBImport.xlsx
+clippedCleanedEBirdFiles/*
+Clyde_RA/*
+ZulClydeRA/*
