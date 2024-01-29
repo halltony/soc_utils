@@ -1,13 +1,11 @@
-# This script takes a BirdTrack export file in Excel format and reformats it for use in preparation of an Annual Bird Report
-# Specifically:
-# 1.  It removes the columns thast are not needed: BTO species code', 'Grid reference', 'Uncertainty radius',
-#     'Geometry type', 'Lat', 'Long', 'Pinpoint', 'Observer name', 'User ID', 'User name', 
-#     'Start time', 'End time
-# 2.  It add a season column using the Date column where: Winter/Spring is from 1st Jan to 15th April,
-#     Summer is from 16th April to end July and Autumn/Winter is 1st Aug to 31st Dec.
-# 3.  It overwrites the input file but saves a backup of it using a suffix of .bak
-# 4.  The command takes one argument which is the file path to the input file.  NB it doesn't like spaces
-#     in file names
+# This script takes an eBird extract in csv formatthat has been cleaned using the utility at
+# https://dbradnum.shinyapps.io/eBirdCountyExtractor/
+# It merges the data into a BirdTrack export Excel spreadsheet mapping fields according to the
+# specification in 'Mapping eBird to BirdTrack.xlsx'
+# The command takes two arguments a file path to the cleaned eBird extract and a file path to
+# the BirdTrack Excel Spreadsheet.
+# It overwrites the BirdTrack Excel spreadsheet but saves a backup of the original with a suffix .bak
+# NB it does not tolerate file paths containing spaces
 
 import argparse
 import pandas as pd
@@ -27,11 +25,14 @@ def get_season(dateTime):
     season = 'Autumn/Winter'
   return season
 
-parser = argparse.ArgumentParser(description="Reformat Birdtrack Data for Annual Report",
+parser = argparse.ArgumentParser(description="Merge eBird extract into BirdTrack export",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument("-f", "--file_path", type=str, required=True, help='Filepath to the Excel file to be processed')
+parser.add_argument("-e", "--ebird_file_path", type=str, required=True, 
+                    help='Filepath to the eBird export csv file to be merged from')
 
+parser.add_argument("-b", "--birdtrack_file_path", type=str, required=True, 
+                    help='Filepath to the BirdTrack export Excel file to be merged into')
 
 args = parser.parse_args()
 config = vars(args)
