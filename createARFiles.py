@@ -1,4 +1,9 @@
-#!/Users/Tony/.pyenv/shims/python
+# This script produces word documents for each species in a BirdTrack export file containing the following:
+# 1.  A species header consisting of the Species name, its scientific name, the BOU Category for the species,
+#     The BTO shortcode for the species and the scottish conservation status of the species.
+# 2.  Observation tables for the following seasons: Winter/Spring, Summer, Autumn/Winter.
+#     See the script reformatBirdtrack.py for definitions of these seasons.
+#     Each table is sorted
 
 from docx import Document
 from docx.shared import Inches
@@ -11,6 +16,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import re
+import time
 
 def createDocument():
     document = Document()
@@ -113,19 +119,23 @@ def createObsTable(species_df):
     season_df = species_df[species_df['Season'] == 'Autumn/Winter']
     process_season('Autumn/Winter', document, season_df)
 
+start_time = time.time()
+
 parser = argparse.ArgumentParser(description="Create Bird Report species headings from a reformated Birdtrack export",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument("-f", "--file_path", type=str, required=True, help='Filepath to the Excel file to be processed')
+parser.add_argument("-s", "--sheet_name", type=str, required=True, help='name of the sheet to be updated')
 parser.add_argument("-d", "--data_file_path", type=str, required=True, help='Filepath to the csv file containing reference data')
 
 args = parser.parse_args()
 config = vars(args)
 
-df = pd.read_excel(args.file_path, sheet_name='Sheet1').fillna(value = 0)
+df = pd.read_excel(args.file_path, sheet_name=args.sheet_name, converters= {'Date': pd.to_datetime, 'dayfirst': True}).fillna(value = 0)
+print('Input file contains {} records'.format(len(df)))
 
-# sort the input file by BOU order
-df.sort_values(by=['BOU order', 'Species'], inplace=True)
+# sort the input file by BOU order, Species and Date
+df.sort_values(by=['BOU order', 'Species', 'Date'], inplace=True)
 
 reference_df = pd.read_csv(args.data_file_path)
 
@@ -134,7 +144,7 @@ speciesList = df.Species.unique()
 
 for species in speciesList:
     if not species.startswith('Unidentified'):
-        print(species)
+        print('Processing {}'.format(species), end='\r')
         species_df = df[df['Species'] == species]
         document = createDocument()
         createSpeciesHeader(species_df)
@@ -144,3 +154,7 @@ for species in speciesList:
         reformatedSpecies = reformatedSpecies.replace('/','')
         reformatedSpecies = str(bouOrder[0]) + '-' + reformatedSpecies
         document.save('output/' + '{}.docx'.format(reformatedSpecies))
+
+runTime = time.time() - start_time
+convert = time.strftime("%H:%M:%S", time.gmtime(runTime))
+print('Execution took {}'.format(convert))

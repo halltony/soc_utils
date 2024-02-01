@@ -43,7 +43,6 @@ print('eBird file contains {} records'.format(len(eBird_df)))
 filtered_df = eBird_df.query("eBird_category == 'species' | eBird_category.isnull()", engine='python')
 print('eBird file contains {} species records'.format(len(filtered_df)))
 
-
 bouOrder_df = pd.read_csv(args.birdtrack_bou_order_file_path)
 print('Birdtrack BOU Sequence file read')
 
