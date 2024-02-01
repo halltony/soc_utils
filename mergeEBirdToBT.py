@@ -12,18 +12,8 @@ import pandas as pd
 import datetime
 from datetime import date, datetime
 import shutil
-
-#defining function
-def get_season(dateTime):
-  m = dateTime.month
-  d = dateTime.day
-  if (m < 4 or (m == 4 and d < 16)):
-    season = 'Winter/Spring'
-  elif m < 8:
-    season = 'Summer'
-  else:
-    season = 'Autumn/Winter'
-  return season
+import time
+start_time = time.time()
 
 parser = argparse.ArgumentParser(description="Merge eBird extract into BirdTrack export",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -34,33 +24,144 @@ parser.add_argument("-e", "--ebird_file_path", type=str, required=True,
 parser.add_argument("-b", "--birdtrack_file_path", type=str, required=True, 
                     help='Filepath to the BirdTrack export Excel file to be merged into')
 
+parser.add_argument("-o", "--birdtrack_bou_order_file_path", type=str, required=True, 
+                    help='Filepath to the BirdTrack BOU order csv file')
+
 args = parser.parse_args()
 config = vars(args)
 
-#Save a backup of the original file
-backup = args.file_path.replace('.xlsx', '.bak')
-shutil.copyfile(args.file_path, backup)
+# Save a backup of the original file
+backup = args.birdtrack_file_path.replace('.xlsx', '.bak')
+shutil.copyfile(args.birdtrack_file_path, backup)
+print('Backup copy of input BirdTrack data saved as {}'.format(backup))
 
-df = pd.read_excel(args.file_path, converters= {'Date': pd.to_datetime})
+# Open the files
+eBird_df = pd.read_csv(args.ebird_file_path, converters= {'Date': pd.to_datetime,})
+print('eBird file contains {} records'.format(len(eBird_df)))
 
-# Remove columns that are not required
-columnsToRemove = ['BTO species code', 'Grid reference', 'Uncertainty radius',
-                   'Geometry type', 'Lat', 'Long', 'Pinpoint', 'Observer name', 'User ID', 'User name', 
-                   'Start time', 'End time']
+#Drop all rows where eBird category is not species'
+filtered_df = eBird_df.query("eBird_category == 'species' | eBird_category.isnull()", engine='python')
+print('eBird file contains {} species records'.format(len(filtered_df)))
 
-df = df.drop(columnsToRemove, axis=1)
 
-# Reorder the remaining columns
-requiredColumnOrder = ['BOU order', 'Species', 'Scientific name', 'Count', 'Place', 'Date', 'Comment']
-df = df.reindex(columns=requiredColumnOrder)
+bouOrder_df = pd.read_csv(args.birdtrack_bou_order_file_path)
+print('Birdtrack BOU Sequence file read')
 
-# Insert a season column
-df['Season'] = df['Date'].map(get_season)
+sheetname = 'Records#1'
+birdTrack_df = pd.read_excel(args.birdtrack_file_path, sheet_name=sheetname, converters= {'Date': pd.to_datetime, 'dayfirst': True})
+print('Birdtrack export file to be merged into already contains {} records'.format(len(birdTrack_df)))
 
-# Sort by date order within species - this requires converting to a datetime object
-df['Date'] = pd.to_datetime(df.Date, dayfirst=True)
-df = df.sort_values(['Species','Date'],ascending=[True,True])
-df['Date'] = df['Date'].dt.strftime('%d %b')
+btoSpeciesCode = ''
+uncertaintyRadius = ''
+geometryType = ''
+pinpoint = ''
+userId = 'eBird'
+userName = 'eBird'
+endTime = ''
+plumage = ''
+breedingCodeDict = {'NY' : '13',
+                    'NE' : '15',
+                    'FS' : '14',
+                    'FY' : '14',
+                    'CF' : '14',
+                    'FL' : '12',
+                    'ON' : '13',
+                    'UN' : '11',
+                    'DD' : '07',
+                    'NB' : '09',
+                    'CN' : '09',
+                    'PE' : '08',
+                    'B' : '09',
+                    'A' : '07',
+                    'N' : '06',
+                    'C' : '05',
+                    'T' : '04',
+                    'P' : '03',
+                    'M' : '02',
+                    'S7' : '02',
+                    'S' : '02',
+                    'H' : '03',
+                    'F' : '00'}
+breedingDetails = ''
+remarkable = ''
+habitatNotes = ''
+flight = ''
+activity = ''
+source = 'eBird'
+createdDate = ''
+obsID = ''
+completeList = 'N'
+geometry = ''
 
-# Overwrite the file
-df.to_excel(args.file_path, index=False)
+# Loop through the eBird dataframe extracting required data and add rows to the BirdTrack dataframe
+for index, row in filtered_df.iterrows():
+    print('Processing ebird row {}'.format(index + 1), end='\r')
+    scientificName = row['scientific_name']
+
+    # Lookup BOU Order
+    bou_row = bouOrder_df.query("LATIN_NAME == @scientificName")
+    if  len(bou_row) > 0:
+        bouOrder = bou_row.iloc[0]['BOU_ORDER']
+    else:
+        print('Cannot find BOU Order for scientific name {}'.format(scientificName))
+    # Change X to Present
+    if row['observation_count'] == 'X':
+       count = 'Present'
+    else:
+        count = row['observation_count']
+    
+    # Convert start date string to datetime
+    obsDate = datetime.strptime(row['observation_date'], '%Y/%m/%d')
+
+    # Strip seconds from the time string
+    if pd.isna(row['time_observations_started']):
+        startTime = ''
+    else:
+        timeTokens = str(row['time_observations_started']).split(':')
+        startTime = timeTokens[0] + ':' + timeTokens[1]
+
+    # Concatenate any values in behaviour code and age/sex into comments
+    if pd.isna(row['species_comments']):
+        comment = ''
+    elif row['species_comments'].isnumeric():
+        comment = str(row['species_comments'])
+    else:
+        comment = row['species_comments']
+    if pd.notna(row['behavior_code']):
+        if comment:
+            comment += '; '
+        comment += 'Behaviour Code={}'.format(row['behavior_code'])
+    if pd.notna(row['age_sex']):
+        if comment:
+            comment += '; '
+        comment += 'Age/Sex={}'.format(row['age_sex'])
+
+    # Translate breeding code
+    if pd.notna(row['breeding_code']):
+        breedingCode = str(row['breeding_code']).translate(breedingCodeDict)
+    else:
+        breedingCode = ''
+
+    # use BBRC in eBird as a proxy for sensitive
+    if row['BBRC_species'] == True:
+        sensitive = 'Y'
+    else:
+        sensitive = ''
+    
+    birdTrack_df.loc[len(birdTrack_df.index)] = [btoSpeciesCode, bouOrder, row['species'], row['scientific_name'],
+                                                 row['locality'], row['os1km'], uncertaintyRadius, geometryType,
+                                                 row['latitude'], row['longitude'], pinpoint, row['full_name'],
+                                                 userId, userName, obsDate, startTime,
+                                                 endTime, count, comment, plumage, breedingCode, breedingDetails,
+                                                 sensitive, remarkable, habitatNotes, flight, activity, source,
+                                                 createdDate, obsID, completeList, geometry]
+
+print('Updated BirdTrack export file now contains {} records'.format(len(birdTrack_df)))
+# Overwrite the sheet  
+with pd.ExcelWriter(args.birdtrack_file_path, engine="openpyxl", mode="a", if_sheet_exists="replace", 
+                    date_format='DD/MM/YYYY', datetime_format='HH:MM') as writer:
+    birdTrack_df.to_excel(writer, 'Records#1', index=False)
+
+runTime = time.time() - start_time
+convert = time.strftime("%H:%M:%S", time.gmtime(runTime))
+print('Execution took {}'.format(convert))

@@ -127,7 +127,7 @@ for index, row in input_df.iterrows():
             place += ', ' + row['Location']
 
     # Grid Ref
-    if pd.notna(row['Grid Ref']):
+    if (row['Grid Ref']):
         if len(row['Grid Ref']) > 6:
             gridRef = truncateGridRef(row['Grid Ref'])
         else:
