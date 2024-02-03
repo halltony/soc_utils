@@ -45,7 +45,7 @@ shutil.copyfile(args.file_path, backup)
 
 df = pd.read_excel(args.file_path, sheet_name=args.sheet_name, converters= {'Date': pd.to_datetime})
 
-print('Birdtrack export file to processed contains {} records'.format(len(df)))
+print('Birdtrack export file to be processed contains {} records'.format(len(df)))
 
 # Remove columns that are not required
 columnsToRemove = ['BTO species code', 'Grid reference', 'Uncertainty radius',
@@ -64,10 +64,11 @@ df['Season'] = df['Date'].map(get_season)
 # Sort by date order within species - this requires converting to a datetime object
 df['Date'] = pd.to_datetime(df.Date, dayfirst=True)
 df = df.sort_values(['Species','Date'],ascending=[True,True])
-df['Date'] = df['Date'].dt.strftime('%d %b')
 
 # Overwrite the file
-df.to_excel(args.file_path, index=False)
+with pd.ExcelWriter(args.file_path, engine="openpyxl", mode="a", if_sheet_exists="replace", 
+                    date_format='DD MMM', datetime_format='HH:MM') as writer:
+    df.to_excel(writer, 'Sheet1', index=False)
 
 runTime = time.time() - start_time
 convert = time.strftime("%H:%M:%S", time.gmtime(runTime))

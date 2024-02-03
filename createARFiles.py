@@ -105,7 +105,7 @@ def process_season(season, document, season_df):
             row_cells = table.add_row().cells
             row_cells[0].text = str(row['Count'])
             row_cells[1].text = row['Place']
-            row_cells[2].text = row['Date']
+            row_cells[2].text = row['Date'].strftime('%d %b')
             if row['Comment'] != 0:
                 row_cells[3].text = row['Comment']
 
@@ -131,11 +131,12 @@ parser.add_argument("-d", "--data_file_path", type=str, required=True, help='Fil
 args = parser.parse_args()
 config = vars(args)
 
-df = pd.read_excel(args.file_path, sheet_name=args.sheet_name, converters= {'Date': pd.to_datetime, 'dayfirst': True}).fillna(value = 0)
+df = pd.read_excel(args.file_path, converters= {'Date': pd.to_datetime}, sheet_name=args.sheet_name).fillna(value = 0)
 print('Input file contains {} records'.format(len(df)))
 
 # sort the input file by BOU order, Species and Date
 df.sort_values(by=['BOU order', 'Species', 'Date'], inplace=True)
+print('Input file sorted')
 
 reference_df = pd.read_csv(args.data_file_path)
 
@@ -144,6 +145,7 @@ speciesList = df.Species.unique()
 
 for species in speciesList:
     if not species.startswith('Unidentified'):
+        print(..., end='')
         print('Processing {}'.format(species), end='\r')
         species_df = df[df['Species'] == species]
         document = createDocument()
@@ -157,4 +159,5 @@ for species in speciesList:
 
 runTime = time.time() - start_time
 convert = time.strftime("%H:%M:%S", time.gmtime(runTime))
+print(..., end='')
 print('Execution took {}'.format(convert))
