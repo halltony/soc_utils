@@ -5,7 +5,7 @@ import pandas as pd
 import datetime
 from datetime import date, datetime
 
-parser = argparse.ArgumentParser(description="Analyse Birdtrack Data for Annual Report",
+parser = argparse.ArgumentParser(description="Analyse Birdtrack and eBird Data for Annual Report",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument("-f", "--file_path", type=str, required=True, help='Filepath to the Excel file to be processed')
