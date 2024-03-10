@@ -41,7 +41,7 @@
 
 import argparse
 import pandas as pd
-from datetime import date, datetime
+from datetime import date, datetime as dt
 import pathlib
 import sys
 import time
@@ -61,17 +61,17 @@ parser.add_argument("-c", "--count_column", type=str, required=True, help="colum
 parser.add_argument("-g", "--gridRef_column", type=str, required=True, help="column containing the 1km grid ref")
 parser.add_argument("-b", "--breedingCode_column", type=str, required=True, help="column containing the breeding code")
 parser.add_argument("-t", "--total_squares", type=str, required=False, help='total number of 1km squares for the area the records relate to')
-parser.add_argument("-f", "--output_file_path", type=str, required=True, help='filepath for output csv file')
+parser.add_argument("-f", "--output_file_path", type=str, required=True, help='filepath for output csv or Excel file')
 
 args = parser.parse_args()
 config = vars(args)
 
 if pathlib.Path(args.input_file_path).suffix == '.csv':
     print('Processing a csv file {}'.format(args.file_path))
-    df = pd.read_csv(args.input_file_path)
+    df = pd.read_csv(args.input_file_path, converters= {args.date_column: pd.to_datetime})
 elif pathlib.Path(args.input_file_path).suffix == '.xlsx':
     print('Processing sheet {} in Excel file {}'.format(args.sheet_name, args.input_file_path))
-    df = pd.read_excel(args.input_file_path, sheet_name=args.sheet_name)
+    df = pd.read_excel(args.input_file_path, converters= {args.date_column: pd.to_datetime}, sheet_name=args.sheet_name)
 else:
     sys.exit('Invalid file type {}'.format(args.input_file_path))
 
@@ -119,6 +119,8 @@ speciesList = [x for x in speciesList if not x.startswith('Unidentified')]
 
 # create the output dataframe
 summary_df = pd.DataFrame(columns=['Species', 'Records', 'Places', 'Observers', 'Days', 'Total count', '1km squares', '% 1km Squares'])
+calendar_df = pd.DataFrame(columns=['Species', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
 
 for index in range(len(speciesList)):
     print('Processing {}'.format(speciesList[index]), end='\x1b[1K\r')
@@ -132,11 +134,38 @@ for index in range(len(speciesList)):
                              'Total count'  : species_df[args.count_column].sum(),
                              '1km squares'  : species_df[args.gridRef_column].nunique(),
                              '% 1km Squares': "{:.2f}".format(species_df[args.gridRef_column].nunique()/totalSquares*100)}
+    # create a dataframe that contains a count of records by month
+    monthcount_df = species_df.groupby(species_df[args.date_column].dt.month).count().rename_axis(['Month'])[args.date_column].reset_index(name='Count')
+    monthArray = []
+    for monthInt in range(1,13):
+        if monthcount_df.loc[monthcount_df.Month == monthInt].empty:
+            count = 0
+        else:
+            count = monthcount_df.loc[monthcount_df.Month == monthInt].Count.item()
+        monthArray.append(count)
+    
+    calendar_df.loc[index] = {'Species': speciesList[index],
+                              'Jan'    : monthArray[0],
+                              'Feb'    : monthArray[1],
+                              'Mar'    : monthArray[2],
+                              'Apr'    : monthArray[3],
+                              'May'    : monthArray[4],
+                              'Jun'    : monthArray[5],
+                              'Jul'    : monthArray[6],
+                              'Aug'    : monthArray[7],
+                              'Sep'    : monthArray[8],
+                              'Oct'    : monthArray[9],
+                              'Nov'    : monthArray[10],
+                              'Dec'    : monthArray[11]}
+    
+print(calendar_df)
+ 
+
     # - For summer/winter visitors earliest arrival and latest sighting
     # - For breeders number of confirmed/probable and possible breeding code observations and 
     #   number and % of 1km squares for this species in which these took place
 
-summary_df.to_csv(args.output_file_path, index=False)
+# summary_df.to_csv(args.output_file_path, index=False)
 
 runTime = time.time() - start_time
 convert = time.strftime("%H:%M:%S", time.gmtime(runTime))
