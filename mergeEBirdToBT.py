@@ -81,6 +81,8 @@ breedingCodeDict = {'NY' : '13',
                     'S' : '02',
                     'H' : '03',
                     'F' : '00'}
+eBirdCodes = ['NY', 'NE', 'FS', 'FY', 'CF', 'FL', 'ON', 'UN', 'DD',
+             'NB', 'CN', 'PE', 'B', 'A', 'N', 'C', 'T', 'P', 'M', 'S7', 'S', 'H', 'F']
 breedingDetails = ''
 remarkable = ''
 habitatNotes = ''
@@ -137,7 +139,10 @@ for index, row in filtered_df.iterrows():
 
     # Translate breeding code
     if pd.notna(row['breeding_code']):
-        breedingCode = str(row['breeding_code']).translate(breedingCodeDict)
+        if row['breeding_code'] in eBirdCodes:
+            breedingCode = breedingCodeDict[row['breeding_code']]
+        else:
+            breedingCode = row['breeding_code']
     else:
         breedingCode = ''
 
