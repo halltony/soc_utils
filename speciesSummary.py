@@ -61,7 +61,7 @@ parser.add_argument("-c", "--count_column", type=str, required=True, help="colum
 parser.add_argument("-g", "--gridRef_column", type=str, required=True, help="column containing the 1km grid ref")
 parser.add_argument("-b", "--breedingCode_column", type=str, required=True, help="column containing the breeding code")
 parser.add_argument("-t", "--total_squares", type=str, required=False, help='total number of 1km squares for the area the records relate to')
-parser.add_argument("-f", "--output_file_path", type=str, required=True, help='filepath for output csv or Excel file')
+parser.add_argument("-f", "--output_file_path", type=str, required=True, help='filepath for output Excel file')
 
 args = parser.parse_args()
 config = vars(args)
@@ -77,35 +77,37 @@ else:
 
 # - Total number of records
 totalRecords = len(df)
-print('Input file contains {} records'.format(totalRecords))
+summary = {'Summary': ['Input file contains {} records'.format(totalRecords)]}
 
 # - Total number of species observed
 totalSpecies = df[args.speciesName_column].nunique()
-print('{} unique species names (NB sub species will be counted as different species and includes species beginning unidentified)'.format(totalSpecies))
+summary['Summary'].append('{} unique species names (NB sub species will be counted as different species and includes species beginning unidentified)'.format(totalSpecies))
 
 # - Total number of discrete place names where observations were made
 totalPlaces = df[args.place_column].nunique()
-print('{} unique place names'.format(totalPlaces))
+summary['Summary'].append('{} unique place names'.format(totalPlaces))
 
 # - Total number of observers
 totalObservers = df[args.observer_column].nunique()
-print('{} unique observers'.format(totalObservers))
+summary['Summary'].append('{} unique observers'.format(totalObservers))
 
 # - Total number of days in the year when species observations were made
 totalDays = df[args.date_column].nunique()
-print('{} unique days on which observations were made'.format(totalDays))
+summary['Summary'].append('{} unique days on which observations were made'.format(totalDays))
 
 # - Total count for all species
 totalCount = df[args.count_column].sum()
-print('{} individual birds (At least)'.format(totalCount))
+summary['Summary'].append('{} individual birds (At least)'.format(totalCount))
 
 # - Total number of 1km squares where observations were logged
 totalSquares = df[args.gridRef_column].nunique()
-print('In {} unique 1km squares'.format(totalSquares))
+summary['Summary'].append('In {} unique 1km squares'.format(totalSquares))
 
 # - Overall % coverage of 1km squares
 pcentCoverage = totalSquares/int(args.total_squares) * 100
-print('Overall {}% of 1km squares had observations recorded in them'.format(pcentCoverage))
+summary['Summary'].append('Overall {}% of 1km squares had observations recorded in them'.format(pcentCoverage))
+
+summary_df = pd.DataFrame(summary)
 
 # sort the input file by Species and Date
 df.sort_values(by=[args.speciesName_column, args.date_column], inplace=True)
@@ -118,24 +120,24 @@ speciesList = df.Species.unique()
 speciesList = [x for x in speciesList if not x.startswith('Unidentified')]
 
 # create the output dataframe
-summary_df = pd.DataFrame(columns=['Species', 'Records', 'Places', 'Observers', 'Days', 'Total count', '1km squares', '% 1km Squares'])
+species_df = pd.DataFrame(columns=['Species', 'Records', 'Places', 'Observers', 'Days', 'Total count', '1km squares', '% 1km Squares'])
 calendar_df = pd.DataFrame(columns=['Species', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
 
 for index in range(len(speciesList)):
     print('Processing {}'.format(speciesList[index]), end='\x1b[1K\r')
     # extract the records for that Species
-    species_df = df[df[args.speciesName_column] == speciesList[index]]
-    summary_df.loc[index] = {'Species'      : speciesList[index],
+    species_extract_df = df[df[args.speciesName_column] == speciesList[index]]
+    species_df.loc[index] = {'Species'      : speciesList[index],
                              'Records'      : len(species_df),
-                             'Places'       : species_df[args.place_column].nunique(),
-                             'Observers'    : species_df[args.observer_column].nunique(),
-                             'Days'         : species_df[args.date_column].nunique(),
-                             'Total count'  : species_df[args.count_column].sum(),
-                             '1km squares'  : species_df[args.gridRef_column].nunique(),
-                             '% 1km Squares': "{:.2f}".format(species_df[args.gridRef_column].nunique()/totalSquares*100)}
+                             'Places'       : species_extract_df[args.place_column].nunique(),
+                             'Observers'    : species_extract_df[args.observer_column].nunique(),
+                             'Days'         : species_extract_df[args.date_column].nunique(),
+                             'Total count'  : species_extract_df[args.count_column].sum(),
+                             '1km squares'  : species_extract_df[args.gridRef_column].nunique(),
+                             '% 1km Squares': "{:.2f}".format(species_extract_df[args.gridRef_column].nunique()/totalSquares*100)}
     # create a dataframe that contains a count of records by month
-    monthcount_df = species_df.groupby(species_df[args.date_column].dt.month).count().rename_axis(['Month'])[args.date_column].reset_index(name='Count')
+    monthcount_df = species_extract_df.groupby(species_extract_df[args.date_column].dt.month).count().rename_axis(['Month'])[args.date_column].reset_index(name='Count')
     monthArray = []
     for monthInt in range(1,13):
         if monthcount_df.loc[monthcount_df.Month == monthInt].empty:
@@ -156,16 +158,17 @@ for index in range(len(speciesList)):
                               'Sep'    : monthArray[8],
                               'Oct'    : monthArray[9],
                               'Nov'    : monthArray[10],
-                              'Dec'    : monthArray[11]}
-    
-print(calendar_df)
- 
+                              'Dec'    : monthArray[11]} 
 
     # - For summer/winter visitors earliest arrival and latest sighting
     # - For breeders number of confirmed/probable and possible breeding code observations and 
     #   number and % of 1km squares for this species in which these took place
 
-# summary_df.to_csv(args.output_file_path, index=False)
+with pd.ExcelWriter(args.output_file_path, engine="openpyxl", 
+                    date_format='DD/MM/YYYY', datetime_format='HH:MM') as writer:
+    summary_df.to_excel(writer, 'Summary', index=False)
+    species_df.to_excel(writer, 'Species', index=False)
+    calendar_df.to_excel(writer, 'Calendar', index=False)
 
 runTime = time.time() - start_time
 convert = time.strftime("%H:%M:%S", time.gmtime(runTime))
