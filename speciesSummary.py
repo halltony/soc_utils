@@ -45,6 +45,80 @@ from datetime import date, datetime as dt
 import pathlib
 import sys
 import time
+import re
+
+speciesToIgnore = ['Chiffchaff/Willow Warbler',
+                   'Common/Arctic Tern',
+                   'Common/Lesser Redpoll',
+                   'Domestic Greylag Goose',
+                   "Harris's Hawk",
+                   'Indian Peafowl',
+                   'Long-eared/Short-eared Owl',
+                   'Domestic Mallard',
+                   'Ruddy Shelduck',
+                   'South African Shelduck']
+# Will also ignore Unidentified anything!
+
+speciesToChange = {
+    'Black Guillemot (arcticus)'            :   'Black Guillemot',
+    'Black-tailed Godwit (islandica)'       :	'Black-tailed Godwit',
+    'Blackbird (merula)'                    :	'Blackbird',
+    'Blue Tit (obscurus)'                   :	'Blue Tit',
+    'Brent Goose (Light-bellied - hrota)'   :	'Brent Goose',
+    'Bullfinch (pyrrhula)'                  :	'Bullfinch',
+    'Buzzard (buteo)'                       :	'Buzzard',
+    'Carrion Crow (corone)'                 :	'Carrion Crow',
+    'Chaffinch (coelebs)'                   :	'Chaffinch',
+    'Chaffinch (gengleri)'                  :	'Chaffinch',
+    'Common Crossbill (curvirostra)'        :	'Common Crossbill',
+    'Common Gull (canus)'                   :	'Common Gull',
+    'Coot (atra)'                           :	'Coot',
+    'Cormorant (Continental - sinensis)'    :	'Cormorant',
+    'Cormorant (Nominate - carbo)'          :	'Cormorant',
+    'Cuckoo (canorus)'                      :	'Cuckoo',
+    'Dunlin (alpina)'                       :	'Dunlin',
+    'Dunnock (occidentalis)'                :	'Dunnock',
+    'Eider (mollissima)'                    :	'Eider',
+    'Garden Warbler (borin)'                :	'Garden Warbler',
+    'Goldeneye (clangula)'                  :	'Goldeneye',
+    'Goldfinch (britannica)'                :	'Goldfinch',
+    'Goosander (merganser)'                 :	'Goosander',
+    'Great Spotted Woodpecker (anglicus)'   :	'Great Spotted Woodpecker',
+    'Great Tit (newtoni)'                   :	'Great Tit',
+    'Grey Heron (cinerea)'                  :	'Grey Heron',
+    'Greylag Goose (anser)'                 :	'Greylag Goose',
+    'House Sparrow (domesticus)'            :	'House Sparrow',
+    'Jackdaw (spermologus)'                 :	'Jackdaw',
+    'Kestrel (tinnunculus)'                 :	'Kestrel',
+    'Lesser Black-backed Gull (graellsii)'  :	'Lesser Black-backed Gull',
+    'Linnet (cannabina)'                    :	'Linnet',
+    'Long-tailed Tit (rosaceus)'            :	'Long-tailed Tit',
+    'Magpie (pica)'                         :	'Magpie',
+    'Mallard (platyrhynchos)'               :	'Mallard',
+    'Moorhen (chloropus)'                   :	'Moorhen',
+    'Nuthatch (caesia)'                     :	'Nuthatch',
+    'Oystercatcher (ostralegus)'            :	'Oystercatcher',
+    'Peregrine (peregrinus)'                :	'Peregrine',
+    'Red Grouse (scotica)'                  :	'Red Grouse',
+    'Robin (melophilus)'                    :	'Robin',
+    'Rock Dove'                             :	'Feral Pigeon',
+    'Rook (frugilegus)'                     :	'Rook',
+    'Sand Martin (riparia)'                 :	'Sand Martin',
+    'Shag (aristotelis)'                    :	'Shag',
+    'Snipe (gallinago)'                     :	'Snipe',
+    'Starling (vulgaris)'                   :	'Starling',
+    'Swallow (rustica)'                     :	'Swallow',
+    'Swift (apus)'                          :	'Swift',
+    'Treecreeper (britannica)'              :	'Treecreeper',
+    'Willow Warbler (trochilus)'            :	'Willow Warbler',
+    'Woodpigeon (palumbus)'                 :	'Woodpigeon',
+    'Yellow-legged Gull (michahellis)'      :	'Yellow-legged Gull'}
+
+def transformSpecies(species):
+    if species in speciesToChange:
+        return speciesToChange[species]
+    else:
+        return species
 
 start_time = time.time()
 
@@ -74,6 +148,20 @@ elif pathlib.Path(args.input_file_path).suffix == '.xlsx':
     df = pd.read_excel(args.input_file_path, converters= {args.date_column: pd.to_datetime}, sheet_name=args.sheet_name)
 else:
     sys.exit('Invalid file type {}'.format(args.input_file_path))
+
+# Remove non-species and change defined sub-species to main species
+# Firstly drop all rows for species begining Unidentified
+print('Removing Unidentified Species')
+df = df.drop(df[df['Species'].str.startswith('Unidentified')].index)
+
+# Then drop the species to ignore - generally unspecific ones
+print('Removing unspecific species')
+df = df[~(df["Species"].isin(speciesToIgnore))]
+
+#Finally transform all rows for sub-species that should be consolidated with
+# the main species
+print('Fixing incorrect subspecies')
+df['Species'] = df['Species'].map(transformSpecies)
 
 # - Total number of records
 totalRecords = len(df)
@@ -116,9 +204,6 @@ print('Input file sorted')
 # get the list of species in the report
 speciesList = df.Species.unique()
 
-# remove any species starting with Unidentified
-speciesList = [x for x in speciesList if not x.startswith('Unidentified')]
-
 # create the output dataframe
 species_df = pd.DataFrame(columns=['Species', 'Records', 'Places', 'Observers', 'Days', 'Total count', '1km squares', '% 1km Squares'])
 calendar_df = pd.DataFrame(columns=['Species', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -129,7 +214,7 @@ for index in range(len(speciesList)):
     # extract the records for that Species
     species_extract_df = df[df[args.speciesName_column] == speciesList[index]]
     species_df.loc[index] = {'Species'      : speciesList[index],
-                             'Records'      : len(species_df),
+                             'Records'      : len(species_extract_df),
                              'Places'       : species_extract_df[args.place_column].nunique(),
                              'Observers'    : species_extract_df[args.observer_column].nunique(),
                              'Days'         : species_extract_df[args.date_column].nunique(),
