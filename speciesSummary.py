@@ -137,7 +137,7 @@ parser.add_argument('-o', '--observer_column', type=str, required=False, default
 parser.add_argument('-d', '--date_column', type=str, required=False, default='Date', help='column containing the date')
 parser.add_argument('-c', '--count_column', type=str, required=False, default='Numerical count', help='column containing the numerical count')
 parser.add_argument('-g', '--gridRef_column', type=str, required=False, default='1km Grid Ref', help='column containing the 1km grid ref')
-parser.add_argument('-b', '--breedingCode_column', type=str, required=False, default='Breeding status', help='column containing the breeding code')
+parser.add_argument('-b', '--breedingCode_column', type=str, required=False, default='Decoded Breeding Status', help='column containing the decoded breeding code')
 parser.add_argument('-t', '--total_squares', type=str, required=True, help='total number of 1km squares for the area the records relate to')
 parser.add_argument('-f', '--output_file_path', type=str, required=False, default='speciesSummary.xlsx', help='filepath for output Excel file')
 
@@ -212,7 +212,9 @@ speciesList = df.Species.unique()
 species_df = pd.DataFrame(columns=['Species', 'Records', 'Places', 'Observers', 'Days', 'Total count', '1km squares', '% 1km Squares'])
 calendar_df = pd.DataFrame(columns=['Species', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
-breeding_df = pd.DataFrame(columns=['Possible #', 'Possible %', 'Probable #', 'Probable %', 'Confirmed #', 'Confirmed %'])
+breeding_df = pd.DataFrame(columns=['Species', 'Possible Records', 'Possible Counts', 'Possible Squares', 'Possible Squares %', 
+                                    'Probable Records', 'Probable Counts', 'Probable Squares', 'Probable Squares %',
+                                    'Confirmed Records', 'Confirmed Counts', 'Confirmed Squares', 'Confirmed Squares %'])
 
 for index in range(len(speciesList)):
     print('Processing {}'.format(speciesList[index]), end='\x1b[1K\r')
@@ -235,9 +237,6 @@ for index in range(len(speciesList)):
         else:
             count = monthcount_df.loc[monthcount_df.Month == monthInt].Count.item()
         monthArray.append(count)
-    #populate the breeding status dataframe
-    breedingStatus_df = species_extract_df.groupby(species_extract_df[args.])
-    
     calendar_df.loc[index] = {'Species': speciesList[index],
                               'Jan'    : monthArray[0],
                               'Feb'    : monthArray[1],
@@ -250,17 +249,38 @@ for index in range(len(speciesList)):
                               'Sep'    : monthArray[8],
                               'Oct'    : monthArray[9],
                               'Nov'    : monthArray[10],
-                              'Dec'    : monthArray[11]} 
+                              'Dec'    : monthArray[11]}
+    #populate the breeding status dataframe
+    possibleBreeder_df = species_extract_df[species_extract_df[args.breedingCode_column] == 'Possible breeding']
+    probableBreeder_df = species_extract_df[species_extract_df[args.breedingCode_column] == 'Probable breeding']
+    confirmedBreeder_df = species_extract_df[species_extract_df[args.breedingCode_column] == 'Confirmed breeding']
+    breeding_df.loc[index] = {'Species': speciesList[index],
+                              'Possible Records'    : len(possibleBreeder_df),
+                              'Possible Counts'     : possibleBreeder_df[args.count_column].sum(),
+                              'Possible Squares'    : possibleBreeder_df[args.gridRef_column].nunique(),
+                              'Possible Squares %'  : possibleBreeder_df[args.gridRef_column].nunique() / totalSquares * 100,
+                              'Probable Records'    : len(probableBreeder_df), 
+                              'Probable Counts'     : probableBreeder_df[args.count_column].sum(),
+                              'Probable Squares'    : probableBreeder_df[args.gridRef_column].nunique(),
+                              'Probable Squares %'  : probableBreeder_df[args.gridRef_column].nunique() / totalSquares * 100,
+                              'Confirmed Records'   : len(confirmedBreeder_df),
+                              'Confirmed Counts'    : confirmedBreeder_df[args.count_column].sum(),
+                              'Confirmed Squares'   : confirmedBreeder_df[args.gridRef_column].nunique(), 
+                              'Confirmed Squares %' : confirmedBreeder_df[args.gridRef_column].nunique() / totalSquares * 100}
+
+#drop species with no breeding records from breeding dataframe
+breeding_df = breeding_df[(breeding_df['Possible Records'] > 0) | 
+                          (breeding_df['Probable Records'] > 0) | 
+                          (breeding_df['Confirmed Records'] > 0)]
 
     # - For summer/winter visitors earliest arrival and latest sighting
-    # - For breeders number of confirmed/probable and possible breeding code observations and 
-    #   number and % of 1km squares for this species in which these took place
 
 with pd.ExcelWriter(args.output_file_path, engine='openpyxl', 
                     date_format='DD/MM/YYYY', datetime_format='HH:MM') as writer:
     summary_df.to_excel(writer, 'Summary', index=False)
     species_df.to_excel(writer, 'Species', index=False)
     calendar_df.to_excel(writer, 'Calendar', index=False)
+    breeding_df.to_excel(writer, 'Breeding', index=False)
 
 runTime = time.time() - start_time
 convert = time.strftime('%H:%M:%S', time.gmtime(runTime))
