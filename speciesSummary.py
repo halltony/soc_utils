@@ -51,10 +51,13 @@ speciesToIgnore = ['Chiffchaff/Willow Warbler',
                    'Common/Arctic Tern',
                    'Common/Lesser Redpoll',
                    'Domestic Greylag Goose',
+                   'Domestic Mallard',
                    "Harris's Hawk",
+                   'Hybrid duck',
+                   'Hybrid goose',
                    'Indian Peafowl',
                    'Long-eared/Short-eared Owl',
-                   'Domestic Mallard',
+                   'Muscovy Duck',
                    'Ruddy Shelduck',
                    'South African Shelduck']
 # Will also ignore Unidentified anything!
@@ -122,20 +125,21 @@ def transformSpecies(species):
 
 start_time = time.time()
 
-parser = argparse.ArgumentParser(description="Generate summary information from Bird Observations files",
+parser = argparse.ArgumentParser(description='Generate summary information from Bird Observations files',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument("-i", "--input_file_path", type=str, required=True, help='filepath to the csv or Excel file to be processed')
-parser.add_argument("-s", "--sheet_name", type=str, required=False, help='name of the sheet to be updated')
-parser.add_argument("-n", "--speciesName_column", type=str, required=True, help="column containing the species name")
-parser.add_argument("-p", "--place_column", type=str, required=True, help="column containing the place name")
-parser.add_argument("-o", "--observer_column", type=str, required=True, help="column containing the observer name")
-parser.add_argument("-d", "--date_column", type=str, required=True, help="column containing the date")
-parser.add_argument("-c", "--count_column", type=str, required=True, help="column containing the numerical count")
-parser.add_argument("-g", "--gridRef_column", type=str, required=True, help="column containing the 1km grid ref")
-parser.add_argument("-b", "--breedingCode_column", type=str, required=True, help="column containing the breeding code")
-parser.add_argument("-t", "--total_squares", type=str, required=False, help='total number of 1km squares for the area the records relate to')
-parser.add_argument("-f", "--output_file_path", type=str, required=True, help='filepath for output Excel file')
+parser.add_argument('-i', '--input_file_path', type=str, required=True, help='filepath to the csv or Excel file to be processed')
+parser.add_argument('-s', '--sheet_name', type=str, required=False, default='Records#1', help='name of the sheet to be updated')
+parser.add_argument('-u', '--bouOrder_column', type=str, required=False, default='BOU order', help='column containing the BOU Order for each species')
+parser.add_argument('-n', '--speciesName_column', type=str, required=False, default='Species', help='column containing the species name')
+parser.add_argument('-p', '--place_column', type=str, required=False, default='Place', help='column containing the place name')
+parser.add_argument('-o', '--observer_column', type=str, required=False, default='Observer name', help='column containing the observer name')
+parser.add_argument('-d', '--date_column', type=str, required=False, default='Date', help='column containing the date')
+parser.add_argument('-c', '--count_column', type=str, required=False, default='Numerical count', help='column containing the numerical count')
+parser.add_argument('-g', '--gridRef_column', type=str, required=False, default='1km Grid Ref', help='column containing the 1km grid ref')
+parser.add_argument('-b', '--breedingCode_column', type=str, required=False, default='Breeding status', help='column containing the breeding code')
+parser.add_argument('-t', '--total_squares', type=str, required=True, help='total number of 1km squares for the area the records relate to')
+parser.add_argument('-f', '--output_file_path', type=str, required=False, default='speciesSummary.xlsx', help='filepath for output Excel file')
 
 args = parser.parse_args()
 config = vars(args)
@@ -156,7 +160,7 @@ df = df.drop(df[df['Species'].str.startswith('Unidentified')].index)
 
 # Then drop the species to ignore - generally unspecific ones
 print('Removing unspecific species')
-df = df[~(df["Species"].isin(speciesToIgnore))]
+df = df[~(df['Species'].isin(speciesToIgnore))]
 
 #Finally transform all rows for sub-species that should be consolidated with
 # the main species
@@ -198,7 +202,7 @@ summary['Summary'].append('Overall {}% of 1km squares had observations recorded 
 summary_df = pd.DataFrame(summary)
 
 # sort the input file by Species and Date
-df.sort_values(by=[args.speciesName_column, args.date_column], inplace=True)
+df.sort_values(by=[args.bouOrder_column, args.date_column], inplace=True)
 print('Input file sorted')
 
 # get the list of species in the report
@@ -208,6 +212,7 @@ speciesList = df.Species.unique()
 species_df = pd.DataFrame(columns=['Species', 'Records', 'Places', 'Observers', 'Days', 'Total count', '1km squares', '% 1km Squares'])
 calendar_df = pd.DataFrame(columns=['Species', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+breeding_df = pd.DataFrame(columns=['Possible #', 'Possible %', 'Probable #', 'Probable %', 'Confirmed #', 'Confirmed %'])
 
 for index in range(len(speciesList)):
     print('Processing {}'.format(speciesList[index]), end='\x1b[1K\r')
@@ -220,7 +225,7 @@ for index in range(len(speciesList)):
                              'Days'         : species_extract_df[args.date_column].nunique(),
                              'Total count'  : species_extract_df[args.count_column].sum(),
                              '1km squares'  : species_extract_df[args.gridRef_column].nunique(),
-                             '% 1km Squares': "{:.2f}".format(species_extract_df[args.gridRef_column].nunique()/totalSquares*100)}
+                             '% 1km Squares': '{:.2f}'.format(species_extract_df[args.gridRef_column].nunique()/totalSquares*100)}
     # create a dataframe that contains a count of records by month
     monthcount_df = species_extract_df.groupby(species_extract_df[args.date_column].dt.month).count().rename_axis(['Month'])[args.date_column].reset_index(name='Count')
     monthArray = []
@@ -230,6 +235,8 @@ for index in range(len(speciesList)):
         else:
             count = monthcount_df.loc[monthcount_df.Month == monthInt].Count.item()
         monthArray.append(count)
+    #populate the breeding status dataframe
+    breedingStatus_df = species_extract_df.groupby(species_extract_df[args.])
     
     calendar_df.loc[index] = {'Species': speciesList[index],
                               'Jan'    : monthArray[0],
@@ -249,12 +256,12 @@ for index in range(len(speciesList)):
     # - For breeders number of confirmed/probable and possible breeding code observations and 
     #   number and % of 1km squares for this species in which these took place
 
-with pd.ExcelWriter(args.output_file_path, engine="openpyxl", 
+with pd.ExcelWriter(args.output_file_path, engine='openpyxl', 
                     date_format='DD/MM/YYYY', datetime_format='HH:MM') as writer:
     summary_df.to_excel(writer, 'Summary', index=False)
     species_df.to_excel(writer, 'Species', index=False)
     calendar_df.to_excel(writer, 'Calendar', index=False)
 
 runTime = time.time() - start_time
-convert = time.strftime("%H:%M:%S", time.gmtime(runTime))
+convert = time.strftime('%H:%M:%S', time.gmtime(runTime))
 print('Execution took {}'.format(convert))
