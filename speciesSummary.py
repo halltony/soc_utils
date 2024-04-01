@@ -117,6 +117,29 @@ speciesToChange = {
     'Woodpigeon (palumbus)'                 :	'Woodpigeon',
     'Yellow-legged Gull (michahellis)'      :	'Yellow-legged Gull'}
 
+# AKA Summer Visitors
+summerVisitors = ['Arctic Tern', 'Blackcap', 'Blackcap (atricapilla)', 'Chiffchaff',
+                  'Common Sandpiper', 'Common Tern', 'Cuckoo', 'Dotterel', 'Gannet',
+                  'Garden Warbler', 'Garganey', 'Grasshopper Warbler', 'House Martin',
+                  'Lesser Whitethroat', 'Little Ringed Plover', 'Manx Shearwater',
+                  'Marsh Harrier', 'Osprey', 'Pied Flycatcher', 'Quail', 'Redstart',
+                  'Reed Warbler', 'Ring Ouzel', 'Sand Martin', 'Sandwich Tern',
+                  'Sedge Warbler', 'Spotted Crake', 'Spotted Flycatcher', 'Swallow',
+                  'Swift', 'Tree Pipit', 'Wheatear', 'Wheatear (Greenland - leucorhoa)',
+                  'Whimbrel', 'Whinchat', 'White Wagtail', 'Whitethroat', 'Willow Warbler',
+                  'Willow Warbler (trochilus)', 'Wood Sandpiper', 'Wood Warbler',
+                  'Yellow Wagtail', 'Yellow Wagtail (British - flavissima)']
+
+winterVisitors = ['Barnacle Goose', "Bewick's Swan", 'Brambling', 'Brent Goose',
+                  'Brent Goose (Light-bellied - hrota)', 'Chiffchaff (Siberian - tristis)',
+                  'Fieldfare', 'Glaucous Gull  ', 'Goldeneye', 'Great Grey Shrike',
+                  'Greenshank', 'Iceland Gull', 'Jack Snipe', 'Long-tailed Duck',
+                  'Pink-footed Goose', 'Pintail', 'Redwing', 'Slavonian Grebe', 'Smew',
+                  'Snow Bunting', 'Taiga Bean Goose', 'Taiga/Tundra Bean Goose',
+                  'Tundra Bean Goose', 'Turnstone', 'Waxwing', 'White Wagtail (alba)',
+                  'White-fronted Goose', 'White-fronted Goose (European - albifrons)',
+                  'White-fronted Goose (Greenland - flavirostris)', 'Whooper Swan']
+
 def transformSpecies(species):
     if species in speciesToChange:
         return speciesToChange[species]
@@ -212,12 +235,24 @@ speciesList = df.Species.unique()
 species_df = pd.DataFrame(columns=['Species', 'Records', 'Places', 'Observers', 'Days', 'Total count', '1km squares', '% 1km Squares'])
 calendar_df = pd.DataFrame(columns=['Species', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
-breeding_df = pd.DataFrame(columns=['Species', 'Possible Records', 'Possible Counts', 'Possible Squares', 'Possible Squares %', 
-                                    'Probable Records', 'Probable Counts', 'Probable Squares', 'Probable Squares %',
-                                    'Confirmed Records', 'Confirmed Counts', 'Confirmed Squares', 'Confirmed Squares %'])
+breeding_df = pd.DataFrame(columns=['Species', 'Possible Records', 'Possible Counts', 'Possible Squares', 'Possible Squares %', 'Earliest Possible', 'Latest Possible',
+                                    'Probable Records', 'Probable Counts', 'Probable Squares', 'Probable Squares %', 'Earliest Probable', 'Latest Probable',
+                                    'Confirmed Records', 'Confirmed Counts', 'Confirmed Squares', 'Confirmed Squares %', 'Earliest Confirmed', 'Latest Confirmed'])
+breeding_df['Earliest Possible'] = pd.to_datetime(breeding_df['Earliest Possible'])
+breeding_df['Earliest Probable'] = pd.to_datetime(breeding_df['Earliest Probable'])
+breeding_df['Earliest Confirmed'] = pd.to_datetime(breeding_df['Earliest Confirmed'])
+breeding_df['Latest Possible'] = pd.to_datetime(breeding_df['Latest Possible'])
+breeding_df['Latest Probable'] = pd.to_datetime(breeding_df['Latest Probable'])
+breeding_df['Latest Confirmed'] = pd.to_datetime(breeding_df['Latest Confirmed'])
+
+summerVistors_df = pd.DataFrame(columns=['Species', 'Earliest', 'Latest'])
+winterVisitors_df = pd.DataFrame(columns=['Species', 'Earliest', 'Latest'])
+breederIndex = 0
+summerVisitorIndex = 0
+winterVisitorIndex = 0
 
 for index in range(len(speciesList)):
-    print('Processing {}'.format(speciesList[index]), end='\x1b[1K\r')
+    print('Processing {}'.format(speciesList[index]))
     # extract the records for that Species
     species_extract_df = df[df[args.speciesName_column] == speciesList[index]]
     species_df.loc[index] = {'Species'      : speciesList[index],
@@ -250,37 +285,91 @@ for index in range(len(speciesList)):
                               'Oct'    : monthArray[9],
                               'Nov'    : monthArray[10],
                               'Dec'    : monthArray[11]}
-    #populate the breeding status dataframe
-    possibleBreeder_df = species_extract_df[species_extract_df[args.breedingCode_column] == 'Possible breeding']
-    probableBreeder_df = species_extract_df[species_extract_df[args.breedingCode_column] == 'Probable breeding']
-    confirmedBreeder_df = species_extract_df[species_extract_df[args.breedingCode_column] == 'Confirmed breeding']
-    breeding_df.loc[index] = {'Species': speciesList[index],
-                              'Possible Records'    : len(possibleBreeder_df),
-                              'Possible Counts'     : possibleBreeder_df[args.count_column].sum(),
-                              'Possible Squares'    : possibleBreeder_df[args.gridRef_column].nunique(),
-                              'Possible Squares %'  : possibleBreeder_df[args.gridRef_column].nunique() / totalSquares * 100,
-                              'Probable Records'    : len(probableBreeder_df), 
-                              'Probable Counts'     : probableBreeder_df[args.count_column].sum(),
-                              'Probable Squares'    : probableBreeder_df[args.gridRef_column].nunique(),
-                              'Probable Squares %'  : probableBreeder_df[args.gridRef_column].nunique() / totalSquares * 100,
-                              'Confirmed Records'   : len(confirmedBreeder_df),
-                              'Confirmed Counts'    : confirmedBreeder_df[args.count_column].sum(),
-                              'Confirmed Squares'   : confirmedBreeder_df[args.gridRef_column].nunique(), 
-                              'Confirmed Squares %' : confirmedBreeder_df[args.gridRef_column].nunique() / totalSquares * 100}
+    breedingMatches = ['Possible breeder', 'Probable breeding', 'Confirmed breeding']
+    if any(x in species_extract_df[args.breedingCode_column].values.tolist() for x in breedingMatches):
+        print('Species has breeding data')
+        possibleRecords = possibleCounts = possibleSquares = possibleSquaresPcent = 0
+        earliestPossible = latestPossible = date.min
+        probableRecords = probableCounts = probableSquares = probableSquaresPcent= 0
+        earliestProbable = latestProbable = date.min
+        confirmedRecords = confirmedCounts = confirmedSquares = confirmnedSquaresPcent= 0
+        earliestConfirmed = latestConfirmed = date.min
+        breeding_df.loc[breederIndex] = {'Species': speciesList[index]}
+        if 'Possible breeder' in species_extract_df[args.breedingCode_column].values.tolist():
+            possibleBreeder_df = species_extract_df[species_extract_df[args.breedingCode_column] == 'Possible breeder']
+            possibleRecords = len(possibleBreeder_df)
+            possibleCounts = possibleBreeder_df[args.count_column].sum()
+            possibleSquares = possibleBreeder_df[args.gridRef_column].nunique()
+            possibleSquaresPcent = possibleBreeder_df[args.gridRef_column].nunique() / totalSquares * 100
+            earliestPossible = possibleBreeder_df[args.date_column].min()
+            latestPossible = possibleBreeder_df[args.date_column].max()
+        if 'Probable breeding' in species_extract_df[args.breedingCode_column].values.tolist():
+            probableBreeder_df = species_extract_df[species_extract_df[args.breedingCode_column] == 'Probable breeding']  
+            probableRecords = len(probableBreeder_df)
+            probableCounts = probableBreeder_df[args.count_column].sum()
+            probableSquares = probableBreeder_df[args.gridRef_column].nunique()
+            probableSquaresPcent = probableBreeder_df[args.gridRef_column].nunique() / totalSquares * 100
+            earliestProbable = probableBreeder_df[args.date_column].min()
+            latestProbable = probableBreeder_df[args.date_column].max()
+        if 'Confirmed breeding' in species_extract_df[args.breedingCode_column].values.tolist():
+            confirmedBreeder_df = species_extract_df[species_extract_df[args.breedingCode_column] == 'Confirmed breeding']  
+            confirmedRecords = len(confirmedBreeder_df)
+            confirmedCounts = confirmedBreeder_df[args.count_column].sum()
+            confirmedSquares = confirmedBreeder_df[args.gridRef_column].nunique()
+            confirmnedSquaresPcent = confirmedBreeder_df[args.gridRef_column].nunique() / totalSquares * 100
+            earliestConfirmed = confirmedBreeder_df[args.date_column].min()
+            latestConfirmed = confirmedBreeder_df[args.date_column].max()        
+        breeding_df.loc[breederIndex] = {'Species'              : speciesList[index],
+                                         'Possible Records'     : possibleRecords,
+                                         'Possible Counts'      : possibleCounts,
+                                         'Possible Squares'     : possibleSquares,
+                                         'Possible Squares %'   : possibleSquaresPcent,
+                                         'Earliest Possible'    : earliestPossible,
+                                         'Latest Possible'      : latestPossible,
+                                         'Probable Records'     : probableRecords,
+                                         'Probable Counts'      : probableCounts,
+                                         'Probable Squares'     : probableSquares,
+                                         'Probable Squares %'   : probableSquaresPcent,
+                                         'Earliest Probable'    : earliestProbable,
+                                         'Latest Probable'      : latestProbable,
+                                         'Confirmed Records'    : confirmedRecords,
+                                         'Confirmed Counts'     : confirmedCounts,
+                                         'Confirmed Squares'    : confirmedSquares,
+                                         'Confirmed Squares %'  : confirmnedSquaresPcent,
+                                         'Earliest Confirmed'   : earliestConfirmed,
+                                         'Latest Confirmed'     : latestConfirmed}
+        breederIndex += 1
 
-#drop species with no breeding records from breeding dataframe
-breeding_df = breeding_df[(breeding_df['Possible Records'] > 0) | 
-                          (breeding_df['Probable Records'] > 0) | 
-                          (breeding_df['Confirmed Records'] > 0)]
-
-    # - For summer/winter visitors earliest arrival and latest sighting
+    # populate the summer visitors dataframe
+    if speciesList[index] in summerVisitors:
+        summerVistors_df.loc[summerVisitorIndex] = {'Species' : speciesList[index],
+                                                    'Earliest' : species_extract_df[args.date_column].min(),
+                                                    'Latest'   : species_extract_df[args.date_column].max()}
+        summerVisitorIndex += 1
+    if speciesList[index] in winterVisitors:
+        janToJun_df = species_extract_df[species_extract_df[args.date_column].dt.month < 7]
+        julToDec_df = species_extract_df[species_extract_df[args.date_column].dt.month > 6]
+        if len(julToDec_df) > 0:
+            earliestWinter = julToDec_df[args.date_column].min()
+        else:
+            earliestWinter = date.min
+        if len(janToJun_df) > 0:
+            latestWinter = janToJun_df[args.date_column].max()
+        else:
+            latestWinter = date.min
+        winterVisitors_df.loc[winterVisitorIndex] = {'Species' : speciesList[index],
+                                                    'Earliest' : earliestWinter,
+                                                    'Latest'   : latestWinter}
+        winterVisitorIndex += 1
 
 with pd.ExcelWriter(args.output_file_path, engine='openpyxl', 
-                    date_format='DD/MM/YYYY', datetime_format='HH:MM') as writer:
-    summary_df.to_excel(writer, 'Summary', index=False)
-    species_df.to_excel(writer, 'Species', index=False)
-    calendar_df.to_excel(writer, 'Calendar', index=False)
-    breeding_df.to_excel(writer, 'Breeding', index=False)
+                    date_format='DD/MM/YYYY') as writer:
+    summary_df.to_excel(writer, sheet_name='Summary', index=False)
+    species_df.to_excel(writer, sheet_name='Species', index=False)
+    calendar_df.to_excel(writer, sheet_name='Calendar', index=False)
+    breeding_df.to_excel(writer, sheet_name='Breeding', index=False)
+    summerVistors_df.to_excel(writer, sheet_name='Summer Visitors', index=False)
+    winterVisitors_df.to_excel(writer, sheet_name='Winter Visitors', index=False)
 
 runTime = time.time() - start_time
 convert = time.strftime('%H:%M:%S', time.gmtime(runTime))
