@@ -68,7 +68,7 @@ df = df.sort_values(['Species','Date'],ascending=[True,True])
 # Overwrite the file
 with pd.ExcelWriter(args.file_path, engine="openpyxl", mode="a", if_sheet_exists="replace", 
                     date_format='DD MMM', datetime_format='HH:MM') as writer:
-    df.to_excel(writer, 'Sheet1', index=False)
+    df.to_excel(writer, sheet_name=args.sheet_name, index=False)
 
 runTime = time.time() - start_time
 convert = time.strftime("%H:%M:%S", time.gmtime(runTime))

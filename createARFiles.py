@@ -60,7 +60,7 @@ def createSpeciesHeader(species_df):
         p.add_run(' ')
         p.add_run(scientificName, style='ScientificStyle').font.color.theme_color = MSO_THEME_COLOR.ACCENT_1
         p.add_run('\t\t')
-        if bou_cat:
+        if pd.notna(bou_cat):
             reformatted_bou = ''
             first_letter = True
             for letter in bou_cat:
