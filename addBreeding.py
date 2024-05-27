@@ -51,4 +51,4 @@ if pathlib.Path(args.input_file_path).suffix == '.csv':
 elif pathlib.Path(args.input_file_path).suffix == '.xlsx':
     with pd.ExcelWriter(args.input_file_path, engine="openpyxl", mode="a", if_sheet_exists="replace", 
                     date_format='DD MMM', datetime_format='HH:MM') as writer:
-        df.to_excel(writer, args.sheet_name, index=False)
+        df.to_excel(writer, sheet_name=args.sheet_name, index=False)

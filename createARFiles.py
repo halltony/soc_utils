@@ -145,8 +145,7 @@ speciesList = df.Species.unique()
 
 for species in speciesList:
     if not species.startswith('Unidentified'):
-        print(..., end='')
-        print('Processing {}'.format(species), end='\r')
+        print('Processing {}'.format(species), end='\x1b[1K\r')
         species_df = df[df['Species'] == species]
         document = createDocument()
         createSpeciesHeader(species_df)
@@ -159,5 +158,5 @@ for species in speciesList:
 
 runTime = time.time() - start_time
 convert = time.strftime("%H:%M:%S", time.gmtime(runTime))
-print(..., end='')
+print('')
 print('Execution took {}'.format(convert))

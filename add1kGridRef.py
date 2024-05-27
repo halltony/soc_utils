@@ -25,9 +25,9 @@ parser = argparse.ArgumentParser(description="convert contents of count column i
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument("-f", "--file_path", type=str, required=True, help='filepath to the csv or Excel file to be processed')
-parser.add_argument("-s", "--sheet_name", type=str, required=False, help='name of the sheet to be updated')
-parser.add_argument("-n", "--lat_column", type=str, required=True, help="column containing the latitude")
-parser.add_argument("-e", "--long_column", type=str, required=True, help="column containing the longitude")
+parser.add_argument("-s", "--sheet_name", type=str, default='Records#1', required=False, help='name of the sheet to be updated')
+parser.add_argument("-n", "--lat_column", type=str, default='Lat', required=False, help="column containing the latitude")
+parser.add_argument("-e", "--long_column", type=str, default='Long', required=False, help="column containing the longitude")
 
 args = parser.parse_args()
 config = vars(args)
@@ -52,4 +52,4 @@ if pathlib.Path(args.file_path).suffix == '.csv':
 elif pathlib.Path(args.file_path).suffix == '.xlsx':
     with pd.ExcelWriter(args.file_path, engine="openpyxl", mode="a", if_sheet_exists="replace", 
                     date_format='DD MMM', datetime_format='HH:MM') as writer:
-        df.to_excel(writer, args.sheet_name, index=False)
+        df.to_excel(writer, sheet_name=args.sheet_name, index=False)
