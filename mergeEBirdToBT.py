@@ -112,7 +112,7 @@ for index, row in filtered_df.iterrows():
         count = row['observation_count']
     
     # Convert start date string to datetime
-    obsDate = datetime.strptime(row['observation_date'], '%Y/%m/%d')
+    obsDate = datetime.strptime(row['observation_date'], '%d/%m/%Y')
 
     # Strip seconds from the time string
     if pd.isna(row['time_observations_started']):
@@ -164,7 +164,7 @@ print('Updated BirdTrack export file now contains {} records'.format(len(birdTra
 # Overwrite the sheet  
 with pd.ExcelWriter(args.birdtrack_file_path, engine="openpyxl", mode="a", if_sheet_exists="replace", 
                     date_format='DD/MM/YYYY', datetime_format='HH:MM') as writer:
-    birdTrack_df.to_excel(writer, 'Records#1', index=False)
+    birdTrack_df.to_excel(writer, sheet_name='Records#1', index=False)
 
 runTime = time.time() - start_time
 convert = time.strftime("%H:%M:%S", time.gmtime(runTime))

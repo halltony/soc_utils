@@ -21,7 +21,7 @@ def calculate1kmGR(row):
     oneKmGridRefString = gridRefString[:2] + gridRefString[3:5] + gridRefString[9:11]
     return oneKmGridRefString
 
-parser = argparse.ArgumentParser(description="convert contents of count column in a CSV file to number",
+parser = argparse.ArgumentParser(description="Convert contents of lat and long columns in a CSV or Excel file to a 1km GR column",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument("-f", "--file_path", type=str, required=True, help='filepath to the csv or Excel file to be processed')
