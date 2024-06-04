@@ -47,7 +47,9 @@ import sys
 import time
 import re
 
-speciesToIgnore = ['Chiffchaff/Willow Warbler',
+speciesToIgnore = ['Black Swan',
+                   'Domestic Greylag Goose',
+                   'Chiffchaff/Willow Warbler',
                    'Common/Arctic Tern',
                    'Common/Lesser Redpoll',
                    'Domestic Greylag Goose',
@@ -59,7 +61,8 @@ speciesToIgnore = ['Chiffchaff/Willow Warbler',
                    'Long-eared/Short-eared Owl',
                    'Muscovy Duck',
                    'Ruddy Shelduck',
-                   'South African Shelduck']
+                   'South African Shelduck',
+                   'Swan Goose']
 # Will also ignore Unidentified anything!
 
 speciesToChange = {
@@ -73,8 +76,10 @@ speciesToChange = {
     'Carrion Crow (corone)'                 :	'Carrion Crow',
     'Chaffinch (coelebs)'                   :	'Chaffinch',
     'Chaffinch (gengleri)'                  :	'Chaffinch',
+    'Coal Tit Continental – ater'           :   'Coal Tit',
     'Common Crossbill (curvirostra)'        :	'Common Crossbill',
     'Common Gull (canus)'                   :	'Common Gull',
+    'Common/Lesser Redpoll'                 :   'Lesser Redpoll',
     'Coot (atra)'                           :	'Coot',
     'Cormorant (Continental - sinensis)'    :	'Cormorant',
     'Cormorant (Nominate - carbo)'          :	'Cormorant',
