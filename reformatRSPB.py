@@ -241,36 +241,10 @@ for index, row in input_df.iterrows():
                                         'Sensitive' : sensitive,
                                         'ObsId'     : row['Observation ID']}
 
-# # Write files containing duplicates
-# arm_dup_output_file_path = 'ARM_Duplicates_' + args.output_file_path
-# non_arm_dup_output_file_path = 'Non_ARM_Duplicates' + args.output_file_path
-
-# arm_duplicates_df = getDuplicates(arm_output_df)
-# non_arm_duplicates_df = getDuplicates(non_arm_output_df)
-
-# # Write out the duplicates
-# writer3 = pd.ExcelWriter(arm_dup_output_file_path, engine="xlsxwriter", date_format='DD/MM/YYYY')
-# writer4 = pd.ExcelWriter(non_arm_dup_output_file_path, engine="xlsxwriter", date_format='DD/MM/YYYY')
-
-# # Convert the dataframe to an XlsxWriter Excel object.
-# arm_duplicates_df.to_excel(writer3, sheet_name="Sheet1", index=False)
-# non_arm_duplicates_df.to_excel(writer4, sheet_name="Sheet1", index=False)
-
-# # Get the xlsxwriter workbook and worksheet objects.
-# workbook3 = writer3.book
-# workbook4 = writer4.book
-
-# worksheet3 = writer3.sheets["Sheet1"]
-# worksheet4 = writer4.sheets["Sheet1"]
-
-# # Close the Pandas Excel writer and output the Excel file.
-# writer3.close()
-# writer4.close()
-
-# Now remove the remaining duplicates by appending the RSPB observation id to the place name
+# Now remove the duplicates by appending the RSPB observation id to the place name
 arm_output_df = removeDuplicates(arm_output_df)
 non_arm_output_df = removeDuplicates(non_arm_output_df)
-# Drop the observation column as it's not needed
+# Drop the observation column as it's not needed any more
 arm_output_df = arm_output_df.drop('ObsId', axis=1)
 non_arm_output_df = non_arm_output_df.drop('ObsId', axis=1)
 
