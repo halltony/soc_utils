@@ -1,4 +1,3 @@
-#!/Users/Tony/.pyenv/shims/python
 # Update for 2023 AssCount Comment seems to have been removed from the source Excel
 
 import argparse
@@ -8,7 +7,7 @@ from datetime import date, datetime
 import shutil
 import re
 from OSGridConverter import latlong2grid
-import xlsxwriter
+# import XlsxWriter
 
 
 def truncateGridRef(gridRef):
@@ -50,9 +49,22 @@ def processARMRowCount(row):
         count = row['Primary Count'] + '+'
     return count
 
-def addGridrefToPlace(df):
-   # Find the duplicate rows
+def findMaxCount(date_df):
+    #create a new column with the numeric count value
+    date_df['Numerical Count'] = date_df['Count'].rstrip('+')
+    return date_df['Numerical Count'].max()
+
+def getDuplicates(df):
+    #Find the duplicate rows
     all_duplicates_df = df[df.duplicated(subset = ['Species', 'Place', 'Date'], keep=False)]
+    return all_duplicates_df
+
+def removeDuplicates(df):
+    # Append the Observer ID to the place name to make multiple counts for the same species
+    # on the same data at the same place unique.
+    # Find the duplicate rows
+    df.sort_values(by = ['Species', 'Place', 'Date'])
+    all_duplicates_df = df[df.duplicated(subset = ['Species', 'Place', 'Date', 'Observer'], keep=False)]
    # Get a list of unique species
     speciesList = all_duplicates_df.Species.unique()
     # For each species find rows with duplicate dates and places
@@ -70,26 +82,14 @@ def addGridrefToPlace(df):
             for date in dateList:
                 # create a df containing just the rows for that date
                 date_df = place_df[place_df['Date'] == date]
-                # check for multiple grid refs
-                if len(date_df['Gridref'].unique()) > 1:
-                    duplicate_filter = (df['Species'] == species) & (df['Place'] == place) & (df['Date'] == date)
-                    df.loc[duplicate_filter, 'Place'] = df.loc[duplicate_filter, 'Place'] + ' - ' + df.loc[duplicate_filter, 'Gridref']
-    return df
-
-def findMaxCount(date_df):
-    #create a new column with the numeric count value
-    date_df['Numerical Count'] = date_df['Count'].rstrip('+')
-    return date_df['Numerical Count'].max()
-
-def getDuplicates(df):
-    #Find the duplicate rows
-    all_duplicates_df = df[df.duplicated(subset = ['Species', 'Place', 'Date'], keep=False)]
-    return all_duplicates_df
-
-def removeDuplicates(df):
-    # Sort the dataframe by species, place, date and count in descending order
-    df.sort_values(by = ['Species', 'Place', 'Date', 'Count'])
-    df = df.drop_duplicates(subset=['Species', 'Place', 'Date'], keep="last")
+                # get a list of observers for that date
+                observerList = date_df.Observer.unique()
+                for observer in observerList:
+                    # create a df containing just the rows for that observer
+                    observer_df = date_df[date_df['Observer'] == observer]
+                    for row in observer_df:
+                        duplicate_filter = (df['Species'] == species) & (df['Place'] == place) & (df['Date'] == date) & (df['Observer'] == observer)
+                        df.loc[duplicate_filter, 'Place'] = df.loc[duplicate_filter, 'Place'] + ' - ' + df.loc[duplicate_filter, 'ObsId']
     return df
 
 parser = argparse.ArgumentParser(description="Reformat RSPB Data for Birdtrack upload",
@@ -104,8 +104,11 @@ config = vars(args)
 
 input_df = pd.read_excel(args.input_file_path, sheet_name='Export')
 
-arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Gridref', 'Date', 'Breeding', 'Comment', 'Observer', 'Sensitive'])
-non_arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Gridref', 'Date', 'Breeding', 'Comment', 'Observer', 'Sensitive'])
+# Make the Observation Id a string
+input_df['Observation ID'] = input_df['Observation ID'].apply(str)
+
+arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Gridref', 'Date', 'Breeding', 'Comment', 'Observer', 'Sensitive', 'ObsId'])
+non_arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Gridref', 'Date', 'Breeding', 'Comment', 'Observer', 'Sensitive', 'ObsId'])
 
 residents = ['Black Grouse', 'Black-headed Gull', 'Blackbird', 'Blue Tit', 'Bullfinch', 'Buzzard', 'Canada Goose', 'Carrion Crow',
              'Chaffinch', 'Coal Tit', 'Collared Dove', 'Coot', 'Dipper', 'Dunnock', 'Gadwall', 'Goldcrest', 'Goldeneye',
@@ -137,10 +140,13 @@ for index, row in input_df.iterrows():
     # Place
     place = re.search(r',?\s*([\w\']*\s*\w*\sRSPB)', row['Dataset']).group(1)
     if 'ARM Species Records' not in row['Dataset']:    
-        if pd.notna(row['Feature']) and not re.match(r'^\d+[a-z]?$', row['Feature']):
+        if pd.notna(row['Feature']) and not re.match(r'^\d+[a-z]?$', row['Feature']) and not row['Feature'] == 'DO NOT USE ':
             place += ', ' + row['Feature']
         if pd.notna(row['Location']):
             place += ', ' + row['Location']
+    else:
+        if pd.notna(row['Feature Types']):
+            place += ' - ' +row['Feature Types']
 
     # Grid Ref
     # if row['Grid Ref']:
@@ -222,7 +228,8 @@ for index, row in input_df.iterrows():
                                     'Date'      : rowDate,
                                     'Comment'   : comment,
                                     'Observer'  : observer,
-                                    'Sensitive' : sensitive}
+                                    'Sensitive' : sensitive,
+                                    'ObsId'     : row['Observation ID']}
     else:
         non_arm_output_df.loc[index] = {'Species'   : row['Common Name'],
                                         'Count'     : count,
@@ -231,44 +238,48 @@ for index, row in input_df.iterrows():
                                         'Date'      : rowDate,
                                         'Comment'   : comment,
                                         'Observer'  : observer,
-                                        'Sensitive' : sensitive}
-# Write files containing duplicates
-arm_dup_output_file_path = 'ARM_Duplicates_' + args.output_file_path
-non_arm_dup_output_file_path = 'Non_ARM_Duplicates' + args.output_file_path
+                                        'Sensitive' : sensitive,
+                                        'ObsId'     : row['Observation ID']}
 
-arm_duplicates_df = getDuplicates(arm_output_df)
-non_arm_duplicates_df = getDuplicates(non_arm_output_df)
+# # Write files containing duplicates
+# arm_dup_output_file_path = 'ARM_Duplicates_' + args.output_file_path
+# non_arm_dup_output_file_path = 'Non_ARM_Duplicates' + args.output_file_path
 
-# Write out the duplicates
-writer3 = pd.ExcelWriter(arm_dup_output_file_path, engine="xlsxwriter", date_format='DD/MM/YYYY')
-writer4 = pd.ExcelWriter(non_arm_dup_output_file_path, engine="xlsxwriter", date_format='DD/MM/YYYY')
+# arm_duplicates_df = getDuplicates(arm_output_df)
+# non_arm_duplicates_df = getDuplicates(non_arm_output_df)
 
-# Convert the dataframe to an XlsxWriter Excel object.
-arm_duplicates_df.to_excel(writer3, sheet_name="Sheet1", index=False)
-non_arm_duplicates_df.to_excel(writer4, sheet_name="Sheet1", index=False)
+# # Write out the duplicates
+# writer3 = pd.ExcelWriter(arm_dup_output_file_path, engine="xlsxwriter", date_format='DD/MM/YYYY')
+# writer4 = pd.ExcelWriter(non_arm_dup_output_file_path, engine="xlsxwriter", date_format='DD/MM/YYYY')
 
-# Get the xlsxwriter workbook and worksheet objects.
-workbook3 = writer3.book
-workbook4 = writer4.book
+# # Convert the dataframe to an XlsxWriter Excel object.
+# arm_duplicates_df.to_excel(writer3, sheet_name="Sheet1", index=False)
+# non_arm_duplicates_df.to_excel(writer4, sheet_name="Sheet1", index=False)
 
-worksheet3 = writer3.sheets["Sheet1"]
-worksheet4 = writer4.sheets["Sheet1"]
+# # Get the xlsxwriter workbook and worksheet objects.
+# workbook3 = writer3.book
+# workbook4 = writer4.book
 
-# Close the Pandas Excel writer and output the Excel file.
-writer3.close()
-writer4.close()
+# worksheet3 = writer3.sheets["Sheet1"]
+# worksheet4 = writer4.sheets["Sheet1"]
 
+# # Close the Pandas Excel writer and output the Excel file.
+# writer3.close()
+# writer4.close()
 
-# Address duplicates for species, place and date in both dataframes
-# Add Gridref to placename if there are multiple rows with the same species, place and date but
-# different Gridrefs
-arm_output_df = addGridrefToPlace(arm_output_df)
-non_arm_output_df = addGridrefToPlace(non_arm_output_df)
-# Now remove the remaining duplicates by deleting all rows except the one with the highest count
-# Do this by sorting on Species, Place, Date and Count and then dropping duplicates 
-# apart from the one with the highest count
+# Now remove the remaining duplicates by appending the RSPB observation id to the place name
 arm_output_df = removeDuplicates(arm_output_df)
 non_arm_output_df = removeDuplicates(non_arm_output_df)
+# Drop the observation column as it's not needed
+arm_output_df = arm_output_df.drop('ObsId', axis=1)
+non_arm_output_df = non_arm_output_df.drop('ObsId', axis=1)
+
+# Report any remaining duplicates
+arm_duplicate_count = len(arm_output_df[arm_output_df.duplicated(subset = ['Species', 'Place', 'Date','Observer'], keep=False)])
+non_arm_duplicate_count = len(non_arm_output_df[non_arm_output_df.duplicated(subset = ['Species', 'Place', 'Date', 'Observer'], keep=False)])
+
+print('There are {} duplicates remaining in the arm output'.format(arm_duplicate_count))
+print('There are {} duplicates remaining in the non-arm output'.format(non_arm_duplicate_count))
 
 # Write the output file
 arm_output_file_path = 'ARM_' + args.output_file_path
