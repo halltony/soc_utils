@@ -7,20 +7,6 @@ from datetime import date, datetime
 import shutil
 import re
 from OSGridConverter import latlong2grid
-# import XlsxWriter
-
-
-def truncateGridRef(gridRef):
-    gridRef = gridRef.replace(' ', '')
-    if len(gridRef) > 6:
-        letters, numbers  = gridRef[:2], gridRef[2:]
-        half = int(len(numbers) / 2)
-        eastings = numbers[:half]
-        northings = numbers[half:]
-        gridRef = letters + eastings[:2] + northings[:2]
-        return gridRef
-    else:
-        return gridRef
 
 def processIncidentalRowCount(row):
     count = ''
@@ -147,18 +133,6 @@ for index, row in input_df.iterrows():
     else:
         if pd.notna(row['Feature Types']):
             place += ' - ' +row['Feature Types']
-
-    # Grid Ref
-    # if row['Grid Ref']:
-    if pd.notna(row['Grid Ref']):
-        if len(row['Grid Ref']) > 6:
-            gridRef = truncateGridRef(row['Grid Ref'])
-        else:
-            gridRef = row['Grid Ref']
-    elif pd.notna(row['Latitude']):
-        gridRef = truncateGridRef(str(latlong2grid(row['Latitude'], row['Longitude'])))
-    else:
-        print('ERROR - Observation Id {} does not contain either Grid Ref or Latitude'.format(row['Observation Id']))
 
     # Comment
     comments = []
