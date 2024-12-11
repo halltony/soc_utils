@@ -107,8 +107,8 @@ input_df = pd.read_excel(args.input_file_path, sheet_name='Export')
 # Make the Observation Id a string
 input_df['Observation ID'] = input_df['Observation ID'].apply(str)
 
-arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Gridref', 'Date', 'Breeding', 'Comment', 'Observer', 'Sensitive', 'ObsId'])
-non_arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Gridref', 'Date', 'Breeding', 'Comment', 'Observer', 'Sensitive', 'ObsId'])
+arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding', 'Comment', 'Observer', 'Sensitive', 'Age and plumage', 'ObsId'])
+non_arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding', 'Comment', 'Observer', 'Sensitive', 'Age and plumage', 'ObsId'])
 
 residents = ['Black Grouse', 'Black-headed Gull', 'Blackbird', 'Blue Tit', 'Bullfinch', 'Buzzard', 'Canada Goose', 'Carrion Crow',
              'Chaffinch', 'Coal Tit', 'Collared Dove', 'Coot', 'Dipper', 'Dunnock', 'Gadwall', 'Goldcrest', 'Goldeneye',
@@ -200,6 +200,8 @@ for index, row in input_df.iterrows():
     if pd.notna(row['AssCount Activity Type Code']) and \
        row['AssCount Activity Type Code'] != 'Not recorded':
         comments.append('AssCount Activity Type Code: {}'.format(row['AssCount Activity Type Code']))
+    if row['Primary Count Unit'] == 'Adult Male' or row['Primary Count Unit'] == 'Adult Female':
+        comments.append('Count is of {}'.format(row['Primary Count Unit']))
     # if pd.notna(row['AssCount Comment']):
     #     comments.append('AssCount Comment: {}'.format(row['AssCount Comment']))
     comment = '; '.join(comments)
@@ -219,27 +221,38 @@ for index, row in input_df.iterrows():
     else:
         sensitive = ''
 
+    # Age and Plumage
+    ageAndPlumage = ''
+    if row['Primary Count Unit'] == 'Adult Male':
+        ageAndPlumage = '[{{"SEX":"M","COUNT":"{}"}}]'.format(count)
+    if row['Primary Count Unit'] == 'Adult Female':
+        ageAndPlumage = '[{{"SEX":"F","COUNT":"{}"}}]'.format(count)
+
     # Write to the output DF
     if 'ARM Species Records' in row['Dataset']:
-        arm_output_df.loc[index] = {'Species'   : row['Common Name'],
-                                    'Count'     : count,
-                                    'Place'     : place,
-                                    'Gridref'   : gridRef,
-                                    'Date'      : rowDate,
-                                    'Comment'   : comment,
-                                    'Observer'  : observer,
-                                    'Sensitive' : sensitive,
-                                    'ObsId'     : row['Observation ID']}
+        arm_output_df.loc[index] = {'Species'           : row['Common Name'],
+                                    'Count'             : count,
+                                    'Place'             : place,
+                                    'Latitude'          : row['Latitude'],
+                                    'Longitude'         : row['Longitude'],
+                                    'Date'              : rowDate,
+                                    'Comment'           : comment,
+                                    'Observer'          : observer,
+                                    'Sensitive'         : sensitive,
+                                    'ObsId'             : row['Observation ID'],
+                                    'Age and plumage'   : ageAndPlumage}
     else:
-        non_arm_output_df.loc[index] = {'Species'   : row['Common Name'],
-                                        'Count'     : count,
-                                        'Place'     : place,
-                                        'Gridref'   : gridRef,
-                                        'Date'      : rowDate,
-                                        'Comment'   : comment,
-                                        'Observer'  : observer,
-                                        'Sensitive' : sensitive,
-                                        'ObsId'     : row['Observation ID']}
+        non_arm_output_df.loc[index] = {'Species'           : row['Common Name'],
+                                        'Count'             : count,
+                                        'Place'             : place,
+                                        'Latitude'          : row['Latitude'],
+                                        'Longitude'         : row['Longitude'],
+                                        'Date'              : rowDate,
+                                        'Comment'           : comment,
+                                        'Observer'          : observer,
+                                        'Sensitive'         : sensitive,
+                                        'ObsId'             : row['Observation ID'],
+                                        'Age and plumage'   : ageAndPlumage}
 
 # Now remove the duplicates by appending the RSPB observation id to the place name
 arm_output_df = removeDuplicates(arm_output_df)
