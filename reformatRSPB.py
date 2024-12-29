@@ -35,11 +35,6 @@ def processARMRowCount(row):
         count = row['Primary Count'] + '+'
     return count
 
-def findMaxCount(date_df):
-    #create a new column with the numeric count value
-    date_df['Numerical Count'] = date_df['Count'].rstrip('+')
-    return date_df['Numerical Count'].max()
-
 def getDuplicates(df):
     #Find the duplicate rows
     all_duplicates_df = df[df.duplicated(subset = ['Species', 'Place', 'Date'], keep=False)]
@@ -78,11 +73,72 @@ def removeDuplicates(df):
                         df.loc[duplicate_filter, 'Place'] = df.loc[duplicate_filter, 'Place'] + ' - ' + df.loc[duplicate_filter, 'ObsId']
     return df
 
+def setBreeding(row):
+    breeding = ''
+    if pd.notna(row['Fledged Max']) and row['Fledged Max'] > 0:
+        breeding = '12'
+    elif pd.notna(row['Chicks Max']) and row['Chicks Max'] > 0:
+        breeding = '16'
+    else:
+        if 'ARM Species Records' in row['Dataset']:
+            if pd.notna(row['Primary Count Unit']):
+                if row['Primary Count Unit'] == 'Singing/Displaying male':
+                    breeding = '02'
+                elif row['Primary Count Unit'] == 'Pair':
+                    breeding = '03'
+                elif row['Primary Count Unit'] == 'Recently hatched chick' or \
+                    row['Primary Count Unit'] == 'Adult(s) with brood' or \
+                    row['Primary Count Unit'] == 'Chick' or \
+                    row['Primary Count Unit'] == 'Part grown chick':
+                    breeding = '16'
+                elif row['Primary Count Unit'] == 'Apparently occupied territory':
+                    breeding = '04'
+                elif row['Primary Count Unit'] == 'Apparently occupied burrow' or \
+                    row['Primary Count Unit'] == 'Apparently occupied nest':
+                    breeding = '13'
+        else:
+            # (breeding) Activity populated in incidental records
+            if pd.notna(row['Activity']):
+                if row['Activity'] == 'Singing':
+                    breeding = '02'
+                elif row['Activity'] == 'Adults carrying faecal sac or food for young':
+                    breeding = '14'
+                elif row['Activity'] == 'Nest under construction' or row['Activity'] == 'Nest building or excavating':
+                    breeding = '09'
+                elif row['Activity'] == 'Visiting nest site':
+                    breeding = '06'
+                elif row['Activity'] == 'Mating' or row['Activity'] == 'Displaying':
+                    breeding = '05'
+                elif row['Activity'] == 'Family party':
+                    breeding = '12'
+                elif row['Activity'] == 'Apparently incubating':
+                    breeding = '15'
+                elif row['Activity'] == 'Adult observed incubating eggs/chicks':
+                    breeding = '16'
+    return breeding
+
+def setActivity(row):
+    activity = ''
+    if pd.notna(row['Activity']):
+        if row['Activity'] == 'Feeding/Drinking' or \
+           row['Activity'] == 'Hunting':
+           activity = '1'
+        elif row['Activity'] == 'In flight':
+           activity = '2'
+        elif row['Activity'] == 'At roost':
+           activity = '4'
+        elif row['Activity'] == 'Apparently incubating' or \
+             row['Activity'] == 'Adult observed incubating eggs/chicks':
+             activity = '7'
+    return activity
+
+
 parser = argparse.ArgumentParser(description="Reformat RSPB Data for Birdtrack upload",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument("-i", "--input_file_path", type=str, required=True, help='Filepath to the RSPB Excel file to be processed')
 parser.add_argument("-o", "--output_file_path", type=str, required=True, help='Filepath to the Birdtrack upload Excel file to be created')
+parser.add_argument("-y", "--year", type=str, required=True, help='Year to be used for ARM dates spanning the whole year')
 
 
 args = parser.parse_args()
@@ -93,8 +149,21 @@ input_df = pd.read_excel(args.input_file_path, sheet_name='Export')
 # Make the Observation Id a string
 input_df['Observation ID'] = input_df['Observation ID'].apply(str)
 
-arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding', 'Comment', 'Observer', 'Sensitive', 'Age and plumage', 'ObsId'])
-non_arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding', 'Comment', 'Observer', 'Sensitive', 'Age and plumage', 'ObsId'])
+# Convert the eggs, chicks and fledged max fields to ints
+input_df['Eggs Min'] = input_df['Eggs Min'].astype('Int16')
+input_df['Eggs Max'] = input_df['Eggs Max'].astype('Int16')
+input_df['Chicks Min'] = input_df['Chicks Min'].astype('Int16')
+input_df['Chicks Max'] = input_df['Chicks Max'].astype('Int16')
+input_df['Fledged Min'] = input_df['Fledged Min'].astype('Int16')
+input_df['Fledged Max'] = input_df['Fledged Max'].astype('Int16')
+input_df['AssCount Count Value'] = input_df['AssCount Count Value'].astype('Int16')
+
+
+
+arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding evidence', 'Comment', 'Observer',
+                                      'Sensitive', 'Activity', 'Age and plumage', 'Source', 'ObsId'])
+non_arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding evidence', 'Comment', 'Observer',
+                                          'Sensitive', 'Activity', 'Age and plumage', 'Source', 'ObsId'])
 
 residents = ['Black Grouse', 'Black-headed Gull', 'Blackbird', 'Blue Tit', 'Bullfinch', 'Buzzard', 'Canada Goose', 'Carrion Crow',
              'Chaffinch', 'Coal Tit', 'Collared Dove', 'Coot', 'Dipper', 'Dunnock', 'Gadwall', 'Goldcrest', 'Goldeneye',
@@ -108,15 +177,18 @@ migrants = ['Blackcap', 'Chiffchaff', 'Common Sandpiper', 'Cuckoo', 'Garden Warb
             'Pied Flycatcher', 'Redstart', 'Sand Martin', 'Sedge Warbler', 'Spotted Crake', 'Spotted Flycatcher', 'Swallow', 'Tree Pipit', 'Whitethroat',
              'Willow Warbler', 'Wood Warbler']
 
+dateForResidents = '15/04/{}'.format(args.year)
+dateForMigrants = '01/06/{}'.format(args.year)
+
 for index, row in input_df.iterrows():
 
     # Count and Date
     if 'ARM Species Records' in row['Dataset']:
         count = processARMRowCount(row)
         if row['Common Name'] in residents:
-            rowDate = datetime.strptime('15/04/2022', '%d/%m/%Y').date()
+            rowDate = datetime.strptime(dateForResidents, '%d/%m/%Y').date()
         elif row['Common Name'] in migrants:
-            rowDate = datetime.strptime('01/06/2022', '%d/%m/%Y').date()
+            rowDate = datetime.strptime(dateForMigrants, '%d/%m/%Y').date()
         else:
             print('Error - ARM record species {} not in residents or migrants'.format(row['Common Name']))
     else:
@@ -202,6 +274,12 @@ for index, row in input_df.iterrows():
     if row['Primary Count Unit'] == 'Adult Female':
         ageAndPlumage = '[{{"SEX":"F","COUNT":"{}"}}]'.format(count)
 
+    # Breeding
+    breeding = setBreeding(row)
+
+    # Activity
+    activity = setActivity(row)
+
     # Write to the output DF
     if 'ARM Species Records' in row['Dataset']:
         arm_output_df.loc[index] = {'Species'           : row['Common Name'],
@@ -213,8 +291,11 @@ for index, row in input_df.iterrows():
                                     'Comment'           : comment,
                                     'Observer'          : observer,
                                     'Sensitive'         : sensitive,
+                                    'Source'            : 'RSPB',
                                     'ObsId'             : row['Observation ID'],
-                                    'Age and plumage'   : ageAndPlumage}
+                                    'Age and plumage'   : ageAndPlumage,
+                                    'Breeding evidence' : breeding,
+                                    'Activity'          : activity}
     else:
         non_arm_output_df.loc[index] = {'Species'           : row['Common Name'],
                                         'Count'             : count,
@@ -225,8 +306,11 @@ for index, row in input_df.iterrows():
                                         'Comment'           : comment,
                                         'Observer'          : observer,
                                         'Sensitive'         : sensitive,
+                                        'Source'            : 'RSPB',
                                         'ObsId'             : row['Observation ID'],
-                                        'Age and plumage'   : ageAndPlumage}
+                                        'Age and plumage'   : ageAndPlumage,
+                                        'Breeding evidence' : breeding,
+                                        'Activity'          : activity}
 
 # Now remove the duplicates by appending the RSPB observation id to the place name
 arm_output_df = removeDuplicates(arm_output_df)
