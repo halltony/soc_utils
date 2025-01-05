@@ -1,0 +1,6 @@
+library(tidyverse)
+library(readxl)
+library(Hmisc)
+library(psych)
+allYears <- read_excel('/Users/Tony/Library/CloudStorage/GoogleDrive-clydesocdiscussion@gmail.com/My Drive/Clyde Bird Reports/All years/All records extracted 2 Nov 23.xlsx', guess_max=Inf)
+describe(allYears)

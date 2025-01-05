@@ -161,9 +161,9 @@ input_df['AssCount Count Value'] = input_df['AssCount Count Value'].astype('Int1
 
 
 arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding evidence', 'Comment', 'Observer',
-                                      'Sensitive', 'Activity', 'Age and plumage', 'Source', 'ObsId'])
+                                      'Sensitive', 'Activity', 'Age_Sex_Plumage', 'Source', 'ObsId'])
 non_arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding evidence', 'Comment', 'Observer',
-                                          'Sensitive', 'Activity', 'Age and plumage', 'Source', 'ObsId'])
+                                          'Sensitive', 'Activity', 'Age_Sex_Plumage', 'Source', 'ObsId'])
 
 residents = ['Black Grouse', 'Black-headed Gull', 'Blackbird', 'Blue Tit', 'Bullfinch', 'Buzzard', 'Canada Goose', 'Carrion Crow',
              'Chaffinch', 'Coal Tit', 'Collared Dove', 'Coot', 'Dipper', 'Dunnock', 'Gadwall', 'Goldcrest', 'Goldeneye',
