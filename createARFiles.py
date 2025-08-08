@@ -4,6 +4,17 @@
 # 2.  Observation tables for the following seasons: Winter/Spring, Summer, Autumn/Winter.
 #     See the script reformatBirdtrack.py for definitions of these seasons.
 #     Each table is sorted
+#     
+# TODO: Restrict the counts included in the tables based on a minimum count value.  This could either be based on some
+#       configuration value for each species or perhaps a numerical analysis of the counts
+#       eg. the top 10% of counts or counts > 75% of the maximum count for that species.
+#       This would allow the report to be more concise and focused on the most significant observations.
+
+#       It could also include a generated paragraph based on some boiler plate text covering things like:
+#       -  The status of the species in clyde - 
+#                   Resident/Non Resident, Breeder/Non Breeder, Summer/Winter Visitor, Passage Migrant, Vagrant etc.
+#       -  For winter/summer visitors the earliest and latest dates recorded
+#       -  For Breeding species the breeding status - confirmed, probable, possible
 
 from docx import Document
 from docx.shared import Inches

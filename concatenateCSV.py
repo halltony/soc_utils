@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 # replace with your folder's path
-folder_path = r'clippedCleanedEBirdFiles'
+folder_path = r'/Users/Tony/Library/CloudStorage/GoogleDrive-clydesocdiscussion@gmail.com/My Drive/Clyde Bird Reports/2023/eBird/Cleaned Files'
 
 all_files = os.listdir(folder_path)
 

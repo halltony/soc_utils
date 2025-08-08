@@ -1,0 +1,15 @@
+﻿birdtrack.column,ebird.column
+Species,Species
+Scientific name,Scientific.name
+Place,Place
+Standard site name,nearestHotspot_locName1
+Grid reference,Grid.reference
+Lat,Lat
+Long,Long
+Observer name,full_name
+Date,Date
+Start time,Start.time
+Count,Count
+Comment,Comment
+Plumage,Plumage
+Breeding status,Breeding.status

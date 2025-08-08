@@ -18,6 +18,8 @@ import sys
 #defining function
 def fix_count(count):
     if not str(count).isnumeric():
+    # Strip out trailing .0 characters
+        count = str(count).rstrip('.0')
     # Strip out any space characters
         count= count.replace(' ','')
     # Strip out any terminating plus signs
