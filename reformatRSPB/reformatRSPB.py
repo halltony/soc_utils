@@ -1,4 +1,7 @@
 # Update for 2023 AssCount Comment seems to have been removed from the source Excel
+# Update for 2024 Primary Count Comment seems to have been removed from the source Excel
+# Imported file sheetname updated - could be fixed by adding sheetname parameter!
+# Added new species to migrant and resident lists for 2024/2025
 
 import argparse
 import pandas as pd
@@ -35,17 +38,15 @@ def processARMRowCount(row):
         count = row['Primary Count'] + '+'
     return count
 
-def getDuplicates(df):
-    #Find the duplicate rows
-    all_duplicates_df = df[df.duplicated(subset = ['Species', 'Place', 'Date'], keep=False)]
-    return all_duplicates_df
-
 def removeDuplicates(df):
+    # Drop all duplicates apart from last record where all columns the same apart from count to retain the highest count for that species at that place on that date
+    df.sort_values(by = ['Date', 'Place', 'Species', 'Count'])
+    df.drop_duplicates(subset=['Species', 'Place', 'Latitude', 'Longitude', 'Date', 'Comment', 'Age_Sex_Plumage', 'Breeding evidence', 'Activity'], inplace=True, keep='last')
     # Append the Observer ID to the place name to make multiple counts for the same species
-    # on the same data at the same place unique.
+    # on the same day at the same place unique.
     # Find the duplicate rows
     df.sort_values(by = ['Species', 'Place', 'Date'])
-    all_duplicates_df = df[df.duplicated(subset = ['Species', 'Place', 'Date', 'Observer'], keep=False)]
+    all_duplicates_df = df[df.duplicated(subset = ['Species', 'Place', 'Date'], keep=False)]
    # Get a list of unique species
     speciesList = all_duplicates_df.Species.unique()
     # For each species find rows with duplicate dates and places
@@ -122,14 +123,14 @@ def setActivity(row):
     if pd.notna(row['Activity']):
         if row['Activity'] == 'Feeding/Drinking' or \
            row['Activity'] == 'Hunting':
-           activity = '1'
+           activity = '[{"ACTIVITY":"1"}]'
         elif row['Activity'] == 'In flight':
-           activity = '2'
+           activity = '[{"ACTIVITY":"2"}]'
         elif row['Activity'] == 'At roost':
-           activity = '4'
+           activity = '[{"ACTIVITY":"4"}]'
         elif row['Activity'] == 'Apparently incubating' or \
              row['Activity'] == 'Adult observed incubating eggs/chicks':
-             activity = '7'
+             activity = '[{"ACTIVITY":"7"}]'
     return activity
 
 
@@ -144,7 +145,7 @@ parser.add_argument("-y", "--year", type=str, required=True, help='Year to be us
 args = parser.parse_args()
 config = vars(args)
 
-input_df = pd.read_excel(args.input_file_path, sheet_name='Export')
+input_df = pd.read_excel(args.input_file_path, sheet_name='Sheet1')
 
 # Make the Observation Id a string
 input_df['Observation ID'] = input_df['Observation ID'].apply(str)
@@ -160,25 +161,40 @@ input_df['AssCount Count Value'] = input_df['AssCount Count Value'].astype('Int1
 
 
 
-arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding evidence', 'Comment', 'Observer',
+arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding', 'Comment', 'Observer',
                                       'Sensitive', 'Activity', 'Age_Sex_Plumage', 'Source', 'ObsId'])
-non_arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding evidence', 'Comment', 'Observer',
+non_arm_output_df = pd.DataFrame(columns=['Species', 'Count', 'Place', 'Latitude', 'Longitude', 'Date', 'Breeding', 'Comment', 'Observer',
                                           'Sensitive', 'Activity', 'Age_Sex_Plumage', 'Source', 'ObsId'])
 
-residents = ['Black Grouse', 'Black-headed Gull', 'Blackbird', 'Blue Tit', 'Bullfinch', 'Buzzard', 'Canada Goose', 'Carrion Crow',
-             'Chaffinch', 'Coal Tit', 'Collared Dove', 'Coot', 'Dipper', 'Dunnock', 'Gadwall', 'Goldcrest', 'Goldeneye',
+residents = ['Barn Owl', 'Black Grouse', 'Black-headed Gull', 'Blackbird', 'Blue Tit', 'Bullfinch', 'Buzzard', 'Canada Goose', 'Carrion Crow',
+             'Chaffinch', 'Coal Tit', 'Collared Dove', 'Coot', 'Crossbill', 'Dipper', 'Dunnock', 'Gadwall', 'Goldcrest', 'Goldeneye',
              'Goldfinch', 'Goosander', 'Great Crested Grebe', 'Great Spotted Woodpecker', 'Great Tit', 'Greenfinch', 'Greylag Goose',
-             'House Sparrow', 'Jackdaw', 'Jay', 'Kestrel', 'Kingfisher', 'Lapwing', 'Lesser Redpoll', 'Little Grebe', 'Long-tailed Tit',
-             'Magpie', 'Mallard', 'Meadow Pipit', 'Mistle Thrush', 'Moorhen', 'Mute Swan', 'Nuthatch', 'Oystercatcher', 'Peregrine',
-             'Pheasant', 'Pied Wagtail', 'Raven', 'Redshank', 'Reed Bunting', 'Robin', 'Shoveler', 'Siskin',
-             'Skylark', 'Snipe', 'Song Thrush', 'Sparrowhawk', 'Starling', 'Stonechat', 'Tawny Owl', 'Teal', 'Treecreeper',
-             'Tufted Duck', 'Water Rail', 'Wigeon', 'Woodcock', 'Woodpigeon', 'Wren']
-migrants = ['Blackcap', 'Chiffchaff', 'Common Sandpiper', 'Cuckoo', 'Garden Warbler', 'Grasshopper Warbler', 'Little Ringed Plover', 'Osprey',
-            'Pied Flycatcher', 'Redstart', 'Sand Martin', 'Sedge Warbler', 'Spotted Crake', 'Spotted Flycatcher', 'Swallow', 'Tree Pipit', 'Whitethroat',
-             'Willow Warbler', 'Wood Warbler']
+             'Hooded Crow', 'House Sparrow', 'Jackdaw', 'Jay', 'Kestrel', 'Kingfisher', 'Lapwing', 'Lesser Redpoll', 'Little Grebe', 'Long-tailed Tit',
+             'Magpie', 'Mallard', 'Marsh Harrier', 'Meadow Pipit', 'Mistle Thrush', 'Moorhen', 'Mute Swan', 'Nuthatch', 'Oystercatcher', 
+             'Peregrine', 'Pheasant', 'Pied Wagtail', 'Raven', 'Redshank', 'Reed Bunting', 'Ringed Plover', 'Robin', 'Rook', 'Shelduck', 
+             'Shoveler', 'Siskin', 'Skylark', 'Snipe', 'Song Thrush', 'Sparrowhawk', 'Starling', 'Stonechat', 'Tawny Owl', 'Teal', 
+             'Treecreeper', 'Tree Sparrow', 'Tufted Duck', 'Water Rail', 'Wigeon', 'Woodcock', 'Woodpigeon', 'Wren']
+migrants = ['Avocet', 'Blackcap', 'Chiffchaff', 'Common Sandpiper', 'Cuckoo', 'Garden Warbler', 'Grasshopper Warbler', 'House Martin', 
+            'Little Ringed Plover', 'Osprey', 'Pied Flycatcher', 'Redstart', 'Reed Warbler', 'Sand Martin', 'Sedge Warbler', 'Spotted Crake', 
+            'Spotted Flycatcher', 'Swallow', 'Tree Pipit', 'Whinchat', 'Whitethroat', 'Willow Warbler', 'Wood Warbler']
+
+replacements = {
+    'Lesser Redpoll': 'Redpoll',
+    'Redpoll (cabaret/flammea)': 'Redpoll',
+    'Northern Goshawk': 'Goshawk',
+    'Pied Wagtail': 'Pied Wagtail (yarrellii)',
+    'White Wagtail': 'White Wagtail (alba)',
+    'European White-fronted Goose': 'White-fronted Goose (European - albifrons)',
+    'Greenland White-fronted Goose': 'White-fronted Goose (Greenland - flavirostris)',
+    'Crossbill': 'Common Crossbill',
+    'Kumlien\'s Gull': 'Iceland Gull (Kumlien\'s - kumlieni)'
+}
 
 dateForResidents = '15/04/{}'.format(args.year)
 dateForMigrants = '01/06/{}'.format(args.year)
+
+# Correct known species naming differences between RSPB and BirdTrack.  This is a temporary fix until the RSPB can update their species list to match BirdTrack.
+input_df['Common Name'] = input_df['Common Name'].replace(replacements)
 
 for index, row in input_df.iterrows():
 
@@ -198,14 +214,13 @@ for index, row in input_df.iterrows():
     # Place
     place = re.search(r',?\s*([\w\']*\s*\w*\sRSPB)', row['Dataset']).group(1)
     if 'ARM Species Records' not in row['Dataset']:    
-        if pd.notna(row['Feature']) and not re.match(r'^\d+[a-z]?$', row['Feature']) and not row['Feature'] == 'DO NOT USE ':
-            place += ', ' + row['Feature']
-        if pd.notna(row['Location']):
-            place += ', ' + row['Location']
+        if pd.notna(row['Feature Types']):
+            place += ' - ' + row['Feature Types']
+        if pd.notna(row['Feature']) and not row['Feature'] == 'DO NOT USE ':
+            place += ' - ' + row['Feature']
     else:
         if pd.notna(row['Feature Types']):
-            place += ' - ' +row['Feature Types']
-
+            place += ' - ' + row['Feature Types']
     # Comment
     comments = []
     if 'ARM Species Records' in row['Dataset']:
@@ -218,10 +233,10 @@ for index, row in input_df.iterrows():
             if pd.notna(row['Status']) and row['Status'] != 'Unknown':
                 comments.append(row['Status'])
     else:
-        if pd.notna(row['Primary Count Comment']):
-            comments.append(row['Primary Count Comment'])
         if pd.notna(row['Status']) and row['Status'] != 'Unknown':
             comments.append(row['Status'])
+        if pd.notna(row['Location']):
+            comments.append(row['Location'])
     if pd.notna(row['Comments']):
         comments.append(row['Comments'])
     if pd.notna(row['Activity']) and \
@@ -293,7 +308,7 @@ for index, row in input_df.iterrows():
                                     'Sensitive'         : sensitive,
                                     'Source'            : 'RSPB',
                                     'ObsId'             : row['Observation ID'],
-                                    'Age and plumage'   : ageAndPlumage,
+                                    'Age_Sex_Plumage'   : ageAndPlumage,
                                     'Breeding evidence' : breeding,
                                     'Activity'          : activity}
     else:
@@ -308,7 +323,7 @@ for index, row in input_df.iterrows():
                                         'Sensitive'         : sensitive,
                                         'Source'            : 'RSPB',
                                         'ObsId'             : row['Observation ID'],
-                                        'Age and plumage'   : ageAndPlumage,
+                                        'Age_Sex_Plumage'   : ageAndPlumage,
                                         'Breeding evidence' : breeding,
                                         'Activity'          : activity}
 

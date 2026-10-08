@@ -38,7 +38,7 @@ extract_leading_number <- function(x) {
 }
 
 # === Step 1: Load Excel file ===
-input_path <- '/Users/Tony/Downloads/RW-October2025.xlsx'       # <- Change this to your file name
+input_path <- '/Users/Tony/Downloads/RW-April2026.xlsx'       # <- Change this to your file name
 sheet_name <- 'R6_birds'                         # Or specify sheet, e.g., "Sheet1"
 
 # Read the spreadsheet
@@ -53,7 +53,7 @@ df$SpatialRef_4fig <- sapply(df$SpatialRef, convert_to_4_fig)
 df[[target_column]] <- sapply(df[[target_column]], extract_leading_number)
 
 # === Step 3: Write output to new Excel file ===
-output_path <- '/Users/Tony/Downloads/RW-October2025_converted.xlsx'
+output_path <- '/Users/Tony/Downloads/RW-April2026-converted.xlsx'
 write_xlsx(df, output_path)
 
 cat("✅ Conversion complete. Output saved to:", output_path, "\n")
