@@ -1,0 +1,24 @@
+species,behaviour,radius_km,time_window_hours,notes
+Marsh Warbler,sedentary,,,Singing male at breeding site
+Aquatic Warbler,sedentary,0.15,4,"Skulking, very site-faithful"
+Great Snipe,sedentary,0.15,,"Resting, rarely moves far"
+Little Crake,sedentary,0.2,,
+Baillon's Crake,sedentary,0.2,,
+Black-winged Stilt,sedentary,0.3,,Wades within small wetland
+Marsh Sandpiper,mobile,2.0,4,Moves between pools at same site
+Pallid Swift,mobile,3.0,4,Hawking over wide area
+White-rumped Sandpiper,mobile,1.5,,
+Semipalmated Sandpiper,mobile,1.5,,
+Lesser Yellowlegs,mobile,2.0,,
+Great White Egret,mobile,1.0,,Moves between wetland patches
+Short-toed Eagle,mobile,5.0,6,Wide-ranging over hillside
+Pallid Harrier,mobile,3.0,5,
+Waxwing,irruptive,0.5,3,Flocks move between berry sources
+Two-barred Crossbill,irruptive,,,
+Parrot Crossbill,irruptive,,,
+Pallas's Warbler,irruptive,0.3,,"Arrive in waves, multiple birds possible"
+Yellow-browed Warbler,irruptive,0.3,,
+Red-flanked Bluetail,irruptive,0.3,,
+Dusky Warbler,irruptive,0.2,,
+Siberian Rubythroat,irruptive,,,
+Taiga Flycatcher,irruptive,,,
